@@ -1,0 +1,136 @@
+---
+title: "GET /verification/status — Get Verification Status"
+sidebarTitle: "Verification Status"
+description: "Fetch the processing status of all uploaded documents for a given flow."
+---
+
+This API returns the processing status of each uploaded document along with an overall `master_status` for the flow.
+
+Use this endpoint to track progress after uploading documents via `/multiupload`.
+
+## Endpoint
+
+GET /verification/status
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+JWT access token used for authentication.
+</ParamField>
+
+## Query params
+
+<ParamField query="flow_id" type="string" required>
+UUID of the verification flow.
+</ParamField>
+
+<ParamField query="external_reference_id" type="string" required>
+Your external identifier associated with the user (for example customer ID).
+</ParamField>
+
+## Response
+
+<ResponseField name="file_statuses" type="array">
+List of statuses for each uploaded file.
+</ResponseField>
+
+<ResponseField name="file_statuses[].file_uuid" type="string">
+Unique identifier for the uploaded file.
+</ResponseField>
+
+<ResponseField name="file_statuses[].document_id" type="string">
+Your provided document identifier.
+</ResponseField>
+
+<ResponseField name="file_statuses[].status" type="string">
+Processing status of the file (e.g., `UPLOAD_SUCCESS`, `PROCESSING_SUCCESS`).
+</ResponseField>
+
+<ResponseField name="master_status" type="string">
+Overall status of the flow (e.g., `IN_PROGRESS`, `SUCCESS`, `FAILED`).
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash
+curl --request GET \
+  --url "https://api.helloatlas.in/v2/verification/status?flow_id=3fa85f64-5717-4562-b3fc-2c963f66afa6&external_reference_id=12345" \
+  --header "Token: <TOKEN>"
+```
+
+```json
+{
+  "file_statuses": [
+    {
+      "file_uuid": "c6a2ffd7-eb44-4d16-8b45-32adc2182a8b",
+      "document_id": "5643",
+      "status": "PROCESSING_SUCCESS"
+    },
+    {
+      "file_uuid": "b5e3cc27-5a34-4f96-832c-8b9bcab1742f",
+      "document_id": "7890",
+      "status": "UPLOAD_SUCCESS"
+    }
+  ],
+  "master_status": "SUCCESS"
+}
+```
+
+</CodeGroup>
+
+## Status values
+
+| Status | Meaning |
+|--------|--------|
+| `UPLOAD_SUCCESS` | File uploaded successfully |
+| `PROCESSING` | Document is being processed |
+| `PROCESSING_SUCCESS` | Extraction completed successfully |
+| `FAILED` | Processing failed |
+
+## Error responses
+
+| Status | Meaning |
+|--------|--------|
+| `400` | Missing or invalid parameters (e.g., missing `flow_id`) |
+| `401` | Invalid or expired token |
+| `409` | Applicant not found for given `flow_id` and `external_reference_id` |
+| `410` | Applicant has been deleted |
+
+## Error examples
+
+```json
+{
+  "error": "Missing required ['flow_id'] parameters"
+}
+```
+
+```json
+{
+  "error": "Invalid token",
+  "reason": "Signature verification failed"
+}
+```
+
+```json
+{
+  "error": "Applicant not found"
+}
+```
+
+```json
+{
+  "error": "Applicant has been deleted."
+}
+```
+
+## Notes
+
+<Note>
+Use this API to poll processing status if you are not using a callback mechanism.
+</Note>
+
+<Note>
+Wait until `master_status` is `SUCCESS` before calling the extracts API.
+</Note>

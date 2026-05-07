@@ -1,0 +1,123 @@
+---
+title: "What do the Confidence Scores represent?"
+sidebarTitle: "Confidence Scores"
+description: "Understand how Atlas confidence scores work, how to set approval thresholds, and how to handle null extractions and cross-check similarity scores."
+---
+
+Every field that Atlas extracts from a document returns two properties: `value` and `confidence_score`. The `confidence_score` is a float between `0.0` and `1.0` representing the model's certainty that the extracted value is correct. A score of `1.0` means the model is fully confident; a score close to `0.0` means the extraction is unreliable.
+
+Understanding and acting on confidence scores is how you build automated decision logic on top of Atlas — routing high-confidence extractions to straight-through processing while flagging borderline cases for human review.
+
+## Field-level confidence scores
+
+Every extracted field follows this structure:
+
+```json
+{
+  "name_as_per_pan": {
+    "value": "D MANIKANDAN DURAISAMY",
+    "confidence_score": 0.95
+  }
+}
+```
+
+The `value` is always present when extraction succeeds. The `confidence_score` reflects how certain the model is about that specific value — it is not a measure of document authenticity.
+
+### Aadhaar example
+
+```json
+{
+  "document_type": "AADHAAR",
+  "name": {
+    "value": "D MANIKANDAN DURAISAMY",
+    "confidence_score": 0.95
+  },
+  "address": {
+    "value": "4-CH-64, NEAR COMMUNITY HALL, BHILWARA, Rajasthan, 311001",
+    "confidence_score": 0.95
+  },
+  "aadhaar_number": {
+    "value": "**** **** 9012",
+    "confidence_score": 0.99
+  },
+  "date_of_birth": {
+    "value": "16/07/1986",
+    "confidence_score": 0.98
+  }
+}
+```
+
+Structured fields like PAN numbers and Aadhaar numbers tend to score higher (0.95–0.99) because they follow a fixed format the model can validate. Free-text fields like addresses may score lower due to spelling variation, line breaks, and handwritten annotations.
+
+## Using confidence scores in your workflow
+
+A common pattern is to define three routing tiers based on score ranges. The right thresholds for your use case depend on your document quality distribution, risk tolerance, and the specific field — tune them against your production data rather than using fixed values.
+
+<Note>
+  The thresholds below are starting points. You should measure extraction accuracy on a representative sample of your actual documents and adjust accordingly.
+</Note>
+
+| Score range | Suggested action |
+| --- | --- |
+| `> 0.90` | Auto-approve — extraction is reliable enough for straight-through processing |
+| `0.70 – 0.90` | Flag for human review — extraction may be correct but warrants verification |
+| `< 0.70` | Reject or re-request — extraction is unreliable; do not use the value |
+
+You can apply different thresholds per field. For example, you might require `> 0.95` for `pan_number` (a structured identifier where errors are high-risk) but accept `> 0.80` for `customer_address` (a free-text field where minor OCR errors are tolerable).
+
+## Cross-check similarity scores
+
+When Atlas compares matching fields across documents (for example, `dealer_address` on a `DELIVERY_ORDER` versus the same field on an `INVOICE`), it returns a `similarity_score` in each cross-check entry. This score uses a **0–100 integer scale**, not the 0.0–1.0 scale used for field-level confidence.
+
+```json
+{
+  "source_doc": "DELIVERY_ORDER",
+  "source_field_name": "dealer_address",
+  "source_value": "D. No. 14-4-16, Anam Vari Street, Kapu Street, Abbai Reddy Complex, NELLORE. 524001",
+  "target_doc": "INVOICE",
+  "target_field_name": "dealer_address",
+  "target_value": "D. No. 14-4-16, Anam Vari Street, Kapu Street, 524001",
+  "similarity_score": 60,
+  "name": "DEALER_ADDRESS"
+}
+```
+
+A `similarity_score` of `90` means the two field values are highly similar (minor differences such as abbreviations or missing words). A score of `60` indicates a partial match — the core address components are present but the values are not identical.
+
+### Cross-check routing guidance
+
+| Similarity score | Suggested action |
+| --- | --- |
+| `≥ 80` | Fields are consistent — no further review required |
+| `60 – 79` | Partial match — flag for manual review to confirm the discrepancy is acceptable |
+| `< 60` | Low match — flag as potentially inconsistent; may indicate document fraud or data entry error |
+
+## Null values and extraction failures
+
+Some fields return `null` for `value` when extraction fails for a specific field (for example, a field is physically absent from the document, or image quality prevents reading it). In these cases, Atlas also populates `error_code` and `error_reason` at the document level.
+
+```json
+{
+  "document_id": "doc-003",
+  "error_code": "INVALID_DOC",
+  "error_reason": "multiple people",
+  "data": {
+    "document_type": "ASSET_OPEN_BOX_IMAGE",
+    "customer_present": { "value": "yes", "confidence_score": 0.0 },
+    "number_of_faces_visible": { "value": 3, "confidence_score": 0.0 }
+  }
+}
+```
+
+<Warning>
+  A `confidence_score` of `0.0` does not necessarily mean the extraction failed — it may indicate that the field was populated by a rule-based check rather than a probabilistic model. Always read `error_code` and `error_reason` alongside the score to understand whether a result is usable.
+</Warning>
+
+When `error_code` is non-empty, treat the document as requiring manual review regardless of the values present in `data`.
+
+## Best practices
+
+- **Do not hardcode thresholds.** Optimal thresholds vary by document type, scan quality, and the population of documents your customers submit. Measure recall and precision on a labelled sample set.
+- **Distinguish field-level and document-level failures.** A document can have a valid `document_type` and several high-confidence fields alongside a few null or low-confidence ones. Process the reliable fields and route only the problematic ones to review.
+- **Separate similarity scores from confidence scores.** The cross-check `similarity_score` (0–100) measures agreement between two documents; the field `confidence_score` (0.0–1.0) measures extraction certainty within a single document. Do not compare the two scales directly.
+- **Log scores alongside decisions.** Storing the raw scores with each underwriting decision lets you analyse threshold performance over time and retune without re-processing historical applications.

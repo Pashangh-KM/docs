@@ -1,0 +1,97 @@
+---
+title: "Authentication"
+description: "Use your Client-Id and Client-Secret to obtain a JWT access token. Pass the token in the Token header on every subsequent request."
+---
+
+Atlas uses JWT-based authentication. You exchange your `Client-Id` and `Client-Secret` for a short-lived access token, then include that token in the `Token` header on every subsequent API request. Tokens expire after 3600 seconds (one hour); use the refresh token endpoint to obtain a new access token without re-submitting your credentials.
+
+## How authentication works
+
+1. Your accounts team provisions a `Client-Id` and `Client-Secret` for your integration.
+2. You call the respective auth API with those credentials in the request headers.
+3. Atlas returns an `access_token` and a `refresh_token`.
+4. Include the access token in the `Token` header for all subsequent requests.
+5. When the access token expires, call the respective auth API to get a new one.
+
+<Note>
+  Keep your `Client-Secret` and tokens secure. Never expose them in client-side code, public repositories, or logs.
+</Note>
+
+## Sample generation of an access token
+
+**`POST /verification/authtoken`**
+
+Pass your credentials as request headers. The response body contains the access token and its expiry time in seconds.
+
+### Request headers
+
+| Header | Type | Required | Description |
+| --- | --- | --- | --- |
+| `Client-Id` | string | Yes | Your Atlas client ID |
+| `Client-Secret` | string | Yes | Your Atlas client secret |
+
+### Response
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `access_token` | string | JWT token to use in the `Token` header |
+| `expires_in` | integer | Token lifetime in seconds (3600) |
+
+<CodeGroup>
+
+```bash Request
+curl --request POST \
+  --url https://docstream.dev.kreditmind.com/v1/docstream/authtoken \
+  --header "Client-Id: your-client-id" \
+  --header "Client-Secret: your-client-secret"
+```
+
+```json Response
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expires_in": 3600
+}
+```
+
+</CodeGroup>
+
+### Error responses
+
+| Status | Meaning |
+| --- | --- |
+| `400` | `Client-Id` or `Client-Secret` header is missing |
+| `401` | The credentials provided are invalid |
+
+<CodeGroup>
+
+```json 400 Missing credentials
+{
+  "error": "Missing Client-Id or Client-Secret"
+}
+```
+
+```json 401 Invalid credentials
+{
+  "error": "Invalid Client-Id or Client-Secret"
+}
+```
+
+</CodeGroup>
+
+## Using the token
+
+Include the access token in the `Token` header on every request that requires authentication:
+
+```bash
+Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+For example, when uploading documents:
+
+```bash
+curl --request POST \
+  --url https://docstream.dev.kreditmind.com/v1/docstream/multiupload \
+  --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  --header "Content-Type: application/json" \
+  --data '{"product_type": "POC_CDL", "file_urls": [], ...}'
+```

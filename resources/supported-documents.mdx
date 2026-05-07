@@ -1,0 +1,523 @@
+---
+title: "Document Types"
+description: "Complete reference of all 30+ document types supported by the Atlas API and every field extracted from each document, organized by category."
+---
+
+The Atlas API automatically classifies and extracts structured data from a wide range of Indian financial and government documents. Each extracted field is returned with a `value` and a `confidence_score` (0–1 float) that indicates the model's certainty about the extraction. This page lists every supported document type and its corresponding fields, organized by category.
+
+---
+
+<AccordionGroup>
+  <Accordion title="Identity Documents">
+    ### AADHAAR
+
+    | Field | Description |
+    | --- | --- |
+    | `name` | Full name as printed on the card |
+    | `address` | Raw address string |
+    | `formatted_address` | Normalized address object (`state`, `postcode`, `address_line_1`, `address_line_2`, `city`) |
+    | `aadhaar_number` | 12-digit Aadhaar number; also includes a `redact_url` field — a pre-signed S3 URL to a redacted version of the original image |
+    | `date_of_birth` | Date of birth |
+
+    <Note>
+      The `aadhaar_number` field includes a `redact_url` in addition to `value` and `confidence_score`. Use the `redact_url` to retrieve the image with the Aadhaar number masked. See the [FAQ](/resources/faq) for details on secure handling.
+    </Note>
+
+    ---
+
+    ### PAN
+
+    | Field | Description |
+    | --- | --- |
+    | `name_as_per_pan` | Name as printed on the PAN card |
+    | `father_name` | Father's name |
+    | `dob` | Date of birth |
+    | `pan_number` | 10-character alphanumeric PAN number |
+    | `document_quality_flag` | Quality classification: `original`, `xerox_copy`, or `photo_of_photo` |
+
+    ---
+
+    ### DRIVING\_LICENSE
+
+    | Field | Description |
+    | --- | --- |
+    | `dl_number` | Driving licence number |
+    | `name` | Holder's name |
+    | `date_of_birth` | Date of birth |
+    | `issue_date` | Date the licence was issued |
+    | `valid_till` | Licence expiry date |
+    | `state` | Issuing state |
+
+    ---
+
+    ### VOTER\_ID
+
+    | Field | Description |
+    | --- | --- |
+    | `voter_id` | Voter ID number |
+    | `name` | Holder's name |
+    | `date_of_birth` | Date of birth |
+    | `gender` | Gender |
+
+    ---
+
+    ### PASSPORT
+
+    | Field | Description |
+    | --- | --- |
+    | `passport_number` | Passport number |
+    | `name` | Holder's full name |
+    | `date_of_birth` | Date of birth |
+    | `place_of_birth` | City/country of birth |
+    | `gender` | Gender |
+    | `date_of_issue` | Issue date |
+    | `date_of_expiry` | Expiry date |
+    | `place_of_issue` | Issuing authority location |
+  </Accordion>
+
+  <Accordion title="Business Documents">
+    ### GST\_CERT
+
+    | Field | Description |
+    | --- | --- |
+    | `gst_number` | 15-character GSTIN |
+    | `legal_name` | Registered legal name of the business |
+    | `address` | Raw registered address |
+    | `formatted_address` | Normalized address object |
+    | `date_of_issue` | Certificate issue date |
+    | `constitution_of_business` | Business constitution (e.g., Proprietorship, Private Limited) |
+    | `validity_from` | Start date of GST registration |
+    | `validity_to` | End date of validity (may be `"Not Applicable"` for ongoing registrations) |
+
+    ---
+
+    ### UTILITY\_BILLS (EBILL / GAS\_BILL / PHONE\_BILL / WIFI\_BILL)
+
+    All utility bills share a common schema.
+
+    | Field | Description |
+    | --- | --- |
+    | `name` | Name on the bill |
+    | `address` | Raw address |
+    | `formatted_address` | Normalized address object |
+    | `bill_amount` | Bill amount |
+    | `bill_date` | Bill date |
+
+    ---
+
+    ### UDYAM\_CERT
+
+    | Field | Description |
+    | --- | --- |
+    | `udyam_registration_number` | Udyam registration number (e.g., `UDYAM-MH-26-0012345`) |
+    | `enterprise_name` | Name of the enterprise |
+    | `owner_name` | Owner's full name |
+    | `pan_number` | Owner's PAN number |
+    | `address` | Raw address |
+    | `formatted_address` | Normalized address object |
+    | `type_of_enterprise` | Enterprise size category (e.g., Micro, Small) |
+    | `type_of_organisation` | Organisational type (e.g., Proprietary) |
+    | `major_activity` | Primary activity sector |
+    | `gender` | Owner's gender |
+    | `social_category` | Social category (e.g., General, OBC) |
+    | `mobile_number` | Registered mobile number |
+    | `email_id` | Registered email address |
+    | `date_of_incorporation` | Date of incorporation |
+    | `date_of_commencement_of_business` | Date business operations commenced |
+    | `date_of_udyam_registration` | Date of Udyam registration |
+    | `name_of_unit` | Array of unit names associated with the enterprise |
+    | `nic_5_digit_code` | Array of NIC (National Industrial Classification) 5-digit codes |
+
+    ---
+
+    ### SHOP\_ACT\_LICENSE
+
+    | Field | Description |
+    | --- | --- |
+    | `registration_number` | Registration/application number |
+    | `receipt_id` | Receipt ID (पावती क्रमांक) |
+    | `name_of_establishment` | Name of the registered establishment |
+    | `name_of_employer` | Name of the employer or proprietor |
+    | `nature_of_business` | Nature of business operations |
+    | `address` | Establishment address |
+    | `formatted_address` | Normalized address object |
+    | `mobile_number` | Contact mobile number |
+    | `email` | Contact email address |
+    | `total_employees` | Total number of employees |
+
+    ---
+
+    ### FSSAI
+
+    | Field | Description |
+    | --- | --- |
+    | `registration_number` | FSSAI registration number |
+    | `name` | Name of the business or licence holder |
+    | `address_of_business_operator` | Operator's residential or operational address |
+    | `address_of_business` | Registered business address |
+    | `kind_of_business` | Nature/type of food business |
+    | `issued_on` | Licence issue date |
+    | `valid_upto` | Licence expiry date |
+
+    ---
+
+    ### RC\_BOOK
+
+    | Field | Description |
+    | --- | --- |
+    | `owner_name` | Vehicle owner name |
+    | `vehicle_number` | Registration number |
+    | `engine_number` | Engine number |
+    | `chassis_number` | Chassis number |
+
+    ---
+
+    ### DRUG\_LICENSE
+
+    | Field | Description |
+    | --- | --- |
+    | `license_number` | Drug licence number |
+    | `licensee_name` | Name of the licensee or firm |
+    | `address` | Registered address |
+    | `formatted_address` | Normalized address object (where available) |
+  </Accordion>
+
+  <Accordion title="Financial Documents">
+    ### INVOICE
+
+    | Field | Description |
+    | --- | --- |
+    | `customer_name` | Customer's name |
+    | `customer_address` | Customer's address |
+    | `customer_email` | Customer's email address |
+    | `customer_phone_number` | Customer's phone number |
+    | `dealership_name` | Dealership or seller name |
+    | `dealer_address` | Dealer's address |
+    | `dealer_gst` | Dealer's GSTIN |
+    | `dealer_gst_handwritten` | Whether the GST number is handwritten (`yes` / `no`) |
+    | `product_type` | Array of product type labels |
+    | `model_name` | Array of model names |
+    | `manufacturer_name` | Array of manufacturer names |
+    | `product_hsn_code` | Array of HSN codes |
+    | `serial_number` | Array of serial numbers |
+    | `imei_number` | Array of IMEI numbers |
+    | `total_invoice_amount` | Total invoice amount |
+    | `invoice_date` | Invoice date |
+    | `invoice_number` | Invoice number |
+    | `downpayment_amount` | Down payment amount |
+    | `hypothecation_amount` | Loan/hypothecation amount |
+    | `hypothecation` | Whether the asset is hypothecated (`yes` / `no`) |
+    | `dealer_sign` | Whether a dealer signature is present (`yes` / `no`) |
+    | `dealer_stamp` | Whether a dealer stamp is present (`yes` / `no`) |
+
+    ---
+
+    ### DELIVERY\_ORDER
+
+    | Field | Description |
+    | --- | --- |
+    | `dealer_name` | Dealer's name |
+    | `dealer_address` | Dealer's address |
+    | `customer_name` | Customer's name |
+    | `customer_delivery_address` | Customer's delivery address |
+    | `customer_mobile_number` | Customer's mobile number |
+    | `product_brand_manufacturer` | Product brand or manufacturer |
+    | `product_model` | Product model |
+    | `product_category` | Product category (e.g., Two Wheeler) |
+    | `product_serial_imei_number` | Array of serial/IMEI numbers |
+    | `oem_validation_date` | OEM validation date |
+    | `scheme_description` | Applicable scheme or offer description |
+    | `product_total_cost` | Total product cost |
+    | `emi_amount` | Monthly EMI amount |
+
+    ---
+
+    ### BANK\_STATEMENT
+
+    | Field | Description |
+    | --- | --- |
+    | `account_number` | Bank account number |
+    | `bank_name` | Name of the bank |
+    | `ifsc_code` | IFSC code of the branch |
+    | `name` | Account holder's name |
+    | `statement_period_from` | Statement start date |
+    | `statement_period_to` | Statement end date |
+
+    ---
+
+    ### INSURANCE
+
+    | Field | Description |
+    | --- | --- |
+    | `insured_name` | Name of the insured person |
+    | `insurance_company` | Insurance company name |
+    | `policy_number` | Policy number |
+    | `engine_number` | Vehicle engine number |
+    | `chassis_number` | Vehicle chassis number |
+    | `hypothecation_status` | Hypothecation status (e.g., `"Hypothecated"`) |
+    | `tenure` | Policy tenure |
+    | `IDV` | Insured Declared Value |
+    | `gross_premium` | Gross premium amount |
+    | `start_date` | Policy start date |
+    | `end_date` | Policy end date |
+
+    ---
+
+    ### ITR
+
+    | Field | Description |
+    | --- | --- |
+    | `assessee_name` | Name of the taxpayer |
+    | `pan_number` | PAN number |
+    | `address` | Address of the assessee |
+    | `assessment_year` | Assessment year (e.g., "2024-25") |
+    | `financial_year` | Financial year (e.g., "2023-24") |
+    | `date_of_filing` | Date when return was filed |
+    | `acknowledgement_number` | ITR acknowledgement number |
+    | `income_from_salary` | Income from salary |
+    | `income_from_business_profession` | Income from business or profession |
+    | `gross_total_income` | Total income before deductions |
+    | `total_deductions_chapter_via` | Total deductions under Chapter VI-A |
+    | `total_income` | Income after deductions |
+    | `total_tax_payable` | Total tax liability |
+    | `total_taxes_paid` | Total taxes already paid (TDS \+ advance \+ self-assessment) |
+    | `tax_due` | Remaining tax payable |
+    | `refund_due` | Refund amount due |
+
+    ---
+
+    ### SALARY\_SLIP
+
+    | Field | Description |
+    | --- | --- |
+    | `employee_name` | Name of employee |
+    | `employee_no` | Employee ID |
+    | `company_name` | Employer/company name |
+    | `designation` | Employee designation |
+    | `department` | Department |
+    | `location` | Work location |
+    | `joining_date` | Date of joining |
+    | `payslip_month` | Salary month |
+    | `days_in_month` | Total days in month |
+    | `effective_workdays` | Payable working days |
+    | `lop_days` | Loss of Pay days |
+    | `earning_basic` | Basic salary component |
+    | `earning_hra` | HRA component |
+    | `total_earnings` | Total earnings |
+    | `deduction_income_tax_tds` | TDS deduction |
+    | `deduction_pf` | Provident fund deduction |
+    | `deduction_professional_tax` | Professional tax deduction |
+    | `total_deductions` | Total deductions |
+    | `net_pay_in_numbers` | Net salary (numeric) |
+    | `net_pay_in_words` | Net salary (words) |
+    | `bank_name` | Bank name |
+    | `bank_account_no` | Bank account number |
+    | `pan_number` | PAN number |
+    | `pf_account_number` | PF account number |
+    | `uan` | Universal Account Number |
+    | `address` | Employee address |
+
+    ---
+
+    ### ACH\_FORM
+
+    | Field | Description |
+    | --- | --- |
+    | `bank_name` | Bank name |
+    | `account_number` | Account number |
+    | `ifsc_code` | IFSC code |
+    | `account_holder_name` | Account holder's name |
+    | `emi_amount` | EMI amount |
+    | `first_emi_date` | Date of first EMI |
+    | `signatures_found` | Number of signatures found |
+    | `mobile_number` | Mobile number on the form |
+
+    ---
+
+    ### MARGIN\_MONEY\_RECEIPT
+
+    | Field | Description |
+    | --- | --- |
+    | `customer_name` | Customer's name |
+    | `mmr_amount` | Margin money receipt amount |
+    | `dealer_name` | Dealer's name |
+    | `product_name` | Product name |
+    | `hypothecation_status` | Hypothecation status |
+
+    ---
+
+    ### DEBIT\_NOTE
+
+    | Field | Description |
+    | --- | --- |
+    | `customer_name` | Customer's name |
+    | `insurance_charges` | Insurance charge amount |
+    | `rto_charges` | RTO charge amount |
+    | `accessory_charges` | Accessory charge amount |
+    | `hypothecation_charges` | Hypothecation charge amount |
+
+    ---
+
+    ### PURCHASE\_ORDER
+
+    | Field | Description |
+    | --- | --- |
+    | `seller_name` | Seller's name |
+    | `seller_gstin` | Seller's GSTIN |
+    | `buyer_name` | Buyer's name |
+    | `buyer_gstin` | Buyer's GSTIN |
+    | `total_invoice_amount` | Total invoice amount |
+
+    ---
+
+    ### BOARD\_RESOLUTION
+
+    | Field | Description |
+    | --- | --- |
+    | `company_name` | Name of the company |
+    | `account_number` | Array of account numbers referenced |
+    | `personnel_directory` | Array of authorized personnel |
+    | `auth_matrix` | Authorization matrix defining roles and permissions |
+
+    ---
+
+    ### GOLD\_PLEDGE\_CARDS
+
+    | Field | Description |
+    | --- | --- |
+    | `lender_name` | Name of lending institution |
+    | `customer_name` | Customer name |
+    | `loan_number` | Loan account number |
+    | `loan_date` | Loan issuance date |
+    | `due_date` | Loan due date |
+    | `loan_amount` | Loan amount |
+    | `gross_weight` | Gross weight of pledged gold |
+    | `net_weight` | Net weight of pledged gold |
+    | `articles_count` | Number of pledged items |
+  </Accordion>
+
+  <Accordion title="Property Documents">
+    ### SALE\_DEED
+
+    | Field | Description |
+    | --- | --- |
+    | `purchaser_names` | Name(s) of the purchaser(s) |
+    | `seller_names` | Name(s) of the seller(s) |
+    | `agreement_date` | Date of the sale agreement |
+    | `agreement_cost` | Sale consideration amount |
+    | `village_name` | Village name |
+    | `khata_number` | Khata number |
+    | `gat_no` | Gat/survey number |
+    | `land_area` | Area of land |
+
+    ---
+
+    ### INDEX\_2
+
+    | Field | Description |
+    | --- | --- |
+    | `owner_name` | Array of owner names |
+    | `mortgagor_name` | Name of the mortgagor (lender) |
+    | `loan_amount` | Loan amount |
+    | `property_valuation` | Property valuation amount |
+    | `survey_number` | Array of survey/gat numbers |
+    | `area_of_constructed_property` | Built-up area |
+    | `area_of_land` | Total land area |
+    | `date_of_filing` | Date of document filing |
+    | `date_of_mortgage` | Date of mortgage execution |
+
+    ---
+
+    ### SATBARA
+
+    | Field | Description |
+    | --- | --- |
+    | `applicant_owner_name` | Name of the applicant or owner |
+    | `village_name` | Village name |
+    | `gat_no` | Gat number |
+    | `taluka` | Taluka name |
+    | `district` | District name |
+    | `land_owner_name` | Land owner's name |
+    | `khata_number` | Khata number |
+    | `hypothecation_bank` | Name of the hypothecating bank |
+    | `hypothecation_amount` | Hypothecation amount |
+    | `hypothecation_date` | Date of hypothecation |
+
+    ---
+
+    ### RENT\_AGREEMENT
+
+    | Field | Description |
+    | --- | --- |
+    | `renter_name` | Renter's name |
+    | `address_of_place` | Address of the rented premises |
+    | `start_date` | Agreement start date |
+    | `end_date` | Agreement end date |
+    | `rent_amount` | Monthly rent amount |
+  </Accordion>
+
+  <Accordion title="Asset Documents">
+    ### IMEI\_CLOSEUP\_IMAGE
+
+    | Field | Description |
+    | --- | --- |
+    | `model` | Device model name |
+    | `ram` | RAM capacity |
+    | `rom` | Storage (ROM) capacity |
+    | `imei_number` | Array of IMEI numbers |
+    | `product_sku` | Array of SKU identifiers |
+    | `price` | Device price |
+    | `serial_number` | Serial number |
+
+    ---
+
+    ### ASSET\_OPEN\_BOX\_IMAGE
+
+    | Field | Description |
+    | --- | --- |
+    | `customer_present` | Whether a customer is visible in the image (`yes` / `no`) |
+    | `number_of_faces_visible` | Count of human faces detected in the image |
+
+    <Note>
+      If `number_of_faces_visible` is greater than 1 and `customer_present` is `yes`, the document may be flagged with `error_code: INVALID_DOC` and `error_reason: "multiple people"`.
+    </Note>
+
+    ---
+
+    ### AADHAR\_EXTRACT\_IMAGE
+
+    | Field | Description |
+    | --- | --- |
+    | `photo_present` | Whether an Aadhaar photo is present in the image (`yes` / `no`) |
+
+    ---
+
+    ### PRODUCT\_STICKER
+
+    | Field | Description |
+    | --- | --- |
+    | `model` | Device model name |
+    | `ram` | RAM capacity |
+    | `rom` | Storage capacity |
+    | `imei_number` | Array of IMEI numbers |
+    | `product_sku` | Array of SKU identifiers |
+    | `price` | Printed price |
+    | `serial_number` | Serial number |
+  </Accordion>
+
+  <Accordion title="RTO Forms">
+    The following RTO (Regional Transport Office) form types are supported. All five forms return the same set of fields:
+
+    - `RTO_FORM_26`
+    - `RTO_FORM_29`
+    - `RTO_FORM_30`
+    - `RTO_FORM_34`
+    - `RTO_FORM_35`
+
+    | Field | Description |
+    | --- | --- |
+    | `signatures_found` | Total count of signatures detected on the form |
+    | `signature_1` | Name or identifier associated with the first signature |
+    | `signature_2` | Name or identifier associated with the second signature |
+  </Accordion>
+</AccordionGroup>

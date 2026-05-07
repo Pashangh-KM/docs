@@ -1,0 +1,159 @@
+---
+title: "POST /address/match/batch — Match Addresses"
+sidebarTitle: "Match Addresses"
+description: "Compare one source address against multiple target addresses. Returns similarity scores and same-person confidence for each match."
+---
+
+Submit a single source address alongside one or more target addresses. Atlas normalizes each address and returns a `similarity_score` and a `same_person_score` for every target. You can use these scores to determine whether two addresses on different documents belong to the same individual.
+
+<Warning>
+  A `200` response does **not** guarantee all targets were successfully matched. Always check `error_code` on each result in `match_data` — per-target failures are reported inline rather than as top-level errors.
+</Warning>
+
+## Endpoint
+
+```
+POST /address/match/batch
+```
+
+## Authentication
+
+This endpoint uses **static client credentials** passed as request headers — it does **not** use a JWT token. Your `client_id` and `client_secret` are issued directly by Atlas and remain fixed.
+
+## Request headers
+
+<ParamField header="client_id" type="string" required>
+  Your Atlas client identifier.
+</ParamField>
+
+<ParamField header="client_secret" type="string" required>
+  Your Atlas client secret.
+</ParamField>
+
+## Request body
+
+<ParamField body="application_id" type="string" required>
+  A unique identifier for the application or loan case this request belongs to (e.g., `"lentra_app_001"`).
+</ParamField>
+
+<ParamField body="source_address" type="string" required>
+  The primary address to match against all targets (e.g., `"Flat 12, Green View Apartments, MG Road, Bangalore"`).
+</ParamField>
+
+<ParamField body="target_addresses" type="array" required>
+  One or more addresses to compare against `source_address`. Must contain at least one item.
+
+  <Expandable title="target_addresses item properties">
+    <ParamField body="address" type="string" required>
+      The target address string to compare.
+    </ParamField>
+
+    <ParamField body="index" type="integer" required>
+      A client-assigned integer index. Atlas echoes this back on each result so you can deterministically map responses to your input addresses.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Response
+
+<ResponseField name="match_data" type="array">
+  One result object per target address, in the same order as your input.
+
+  <Expandable title="match_data item properties">
+    <ResponseField name="source_address" type="string">
+      Echo of the `source_address` you provided.
+    </ResponseField>
+
+    <ResponseField name="target_address" type="string">
+      Echo of this target's `address` value.
+    </ResponseField>
+
+    <ResponseField name="similarity_score" type="float | null">
+      Address similarity as a percentage between `0` and `100`. A higher score indicates a closer textual and semantic match. Returns `null` if matching failed for this target.
+    </ResponseField>
+
+    <ResponseField name="same_person_score" type="integer | null">
+      Likelihood (on a scale of `0`–`10`) that the source and target addresses belong to the same person. Returns `null` if matching failed for this target.
+    </ResponseField>
+
+    <ResponseField name="index" type="integer">
+      The `index` value you provided for this target.
+    </ResponseField>
+
+    <ResponseField name="error_code" type="string | null">
+      Per-target error code if this specific address could not be matched (e.g., `"422"`). `null` on success.
+    </ResponseField>
+
+    <ResponseField name="error_message" type="string | null">
+      Human-readable description of the per-target error. `null` on success.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400`  | Bad Request — `source_address` or `target_addresses` is missing or invalid. |
+| `401`  | Authentication Error — `client_id` or `client_secret` is invalid. |
+| `422`  | Unprocessable Entity — the source address or one or more targets could not be normalized. |
+| `503`  | Service Unavailable — the address matching engine is temporarily unavailable. |
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url https://api.helloatlas.in/v1/address/match/batch \
+  --header 'Content-Type: application/json' \
+  --header 'client_id: <YOUR_CLIENT_ID>' \
+  --header 'client_secret: <YOUR_CLIENT_SECRET>' \
+  --data '{
+    "application_id": "lentra_app_001",
+    "source_address": "Flat 12, Green View Apartments, MG Road, Bangalore",
+    "target_addresses": [
+      {
+        "address": "12 Greenview Apt, Mahatma Gandhi Rd, Bengaluru",
+        "index": 0
+      },
+      {
+        "address": "45 Lake View, Whitefield, Bangalore",
+        "index": 1
+      }
+    ]
+  }'
+```
+
+</CodeGroup>
+
+**200 Response** *(full or partial success)*
+
+```json
+{
+  "match_data": [
+    {
+      "source_address": "Flat 12, Green View Apartments, MG Road, Bangalore",
+      "target_address": "12 Greenview Apt, Mahatma Gandhi Rd, Bengaluru",
+      "similarity_score": 89.92,
+      "same_person_score": 9,
+      "index": 0,
+      "error_code": null,
+      "error_message": null
+    },
+    {
+      "source_address": "Flat 12, Green View Apartments, MG Road, Bangalore",
+      "target_address": "45 Lake View, Whitefield, Bangalore",
+      "similarity_score": null,
+      "same_person_score": null,
+      "index": 1,
+      "error_code": "422",
+      "error_message": "Unprocessable Entity: Address normalization failed for this target"
+    }
+  ]
+}
+```
+
+<Note>
+  In the example above, the first target matched with a `similarity_score` of `89.92` and `same_person_score` of `9`, while the second target failed normalization. The overall HTTP status is still `200` — always inspect each item's `error_code` before using the scores.
+</Note>

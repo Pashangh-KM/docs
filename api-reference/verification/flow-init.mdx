@@ -1,0 +1,85 @@
+---
+title: "POST /flow/init — Initialize Verification Flow"
+sidebarTitle: "Initialize Flow"
+description: "Create a new document verification flow for a loan application. Returns a flow_uuid required in all subsequent multiupload, status, and extracts calls."
+---
+
+Every document verification session begins here. Call this endpoint once per application to create a flow, then use the returned `flow_uuid` in all subsequent `/multiupload`, `/status`, and `/extracts` calls.
+
+## Endpoint
+
+```
+POST /verification/flow/init
+```
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+  JWT access token obtained from [POST /authtoken](/api-reference/auth/generate-token).
+</ParamField>
+
+## Request body
+
+<ParamField body="product_type" type="string" required>
+  The product type that governs which document set and cross-checks apply to this flow.
+
+</ParamField>
+
+<ParamField body="application_id" type="string" required>
+  Your internal identifier for the loan application or case. Atlas echoes this value back in callback payloads.
+</ParamField>
+
+<ParamField body="auth_url" type="string" required>
+  A URI that Atlas calls to authenticate its callbacks to your system before delivering results. Must be reachable from Atlas servers.
+</ParamField>
+
+<ParamField body="callback_url" type="string" required>
+  A URI where Atlas POSTs the extracted OCR data and cross-check results when processing is complete. Must accept `POST` requests with a JSON body.
+</ParamField>
+
+<ParamField body="flow_params" type="object">
+  An optional object for additional flow configuration. Pass an empty object `{}` if you have no extra parameters.
+</ParamField>
+
+## Response
+
+<ResponseField name="flow_uuid" type="string">
+  A UUID that uniquely identifies this verification flow. Save this value — you will pass it to every subsequent API call in this session.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url https://api.helloatlas.in/v3/verification/flow/init \
+  --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  --header "Content-Type: application/json" \
+  --data '{
+    "product_type": "POC_CDL",
+    "application_id": "12321321",
+    "auth_url": "https://your-system.example.com/atlas/auth",
+    "callback_url": "https://your-system.example.com/atlas/callback",
+    "flow_params": {}
+  }'
+```
+
+```json 201 Created
+{
+  "flow_uuid": "ec57821d-d766-4e24-81ef-a2768094511b"
+}
+```
+
+</CodeGroup>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400`  | `Missing or empty required parameters: ['application_id']` — one or more required body fields are absent. |
+| `401`  | `Invalid token` — the `Token` header is missing, expired, or invalid. |
+
+<Note>
+  Atlas will POST the final extraction results to your `callback_url` when processing completes. Ensure that URL is publicly accessible and returns an HTTP `2xx` response. You can also poll [GET /status](/api-reference/verification/status) and fetch results manually via [GET /extracts](/api-reference/verification/extracts).
+</Note>

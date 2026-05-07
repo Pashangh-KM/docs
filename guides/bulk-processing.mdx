@@ -1,0 +1,174 @@
+---
+title: "Bulk Processing"
+description: "Upload and extract data from large volumes of documents asynchronously using the Atlas Bulk Service API, with paginated result retrieval."
+---
+
+The Atlas Bulk Service API is designed for high-throughput, asynchronous document processing. Rather than tying uploads to a specific loan application or flow, you submit a batch of documents and retrieve extracted data when processing is complete. This makes it well-suited for back-office operations such as re-processing existing document archives or running nightly extraction jobs.
+
+## When to use bulk vs. the flow API
+
+| Scenario | Recommended API |
+| --- | --- |
+| Real-time per-application verification with cross-checks | [Flow API](/guides/document-verification) |
+| High-volume async processing, no per-application tracking needed | Bulk API — this guide |
+| Callback-driven results delivery | Flow API |
+| Paginated batch retrieval at your own pace | Bulk API |
+
+<Steps>
+  <Step title="Generate a token">
+    Authenticate with your `Client-Id` and `Client-Secret` headers.
+
+    <CodeGroup>
+
+    ```bash curl
+    curl -X POST https://api.helloatlas.in/v1/bulk/authtoken \
+      -H "Client-Id: <your-client-id>" \
+      -H "Client-Secret: <your-client-secret>"
+    ```
+
+    </CodeGroup>
+
+    **Response**
+
+    ```json
+    {
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "expires_in": 3600
+    }
+    ```
+
+    Pass the `access_token` as the `Token` header in all subsequent requests.
+  </Step>
+  <Step title="Upload a batch">
+    Submit a `product_type` and an array of file URLs. Each file entry must include a `file_url` (a pre-signed S3 URL pointing to the document image) and a `document_id` you define for tracking purposes.
+
+    <CodeGroup>
+
+    ```bash curl
+    curl -X POST https://api.helloatlas.in/v1/bulk/multiupload \
+      -H "Token: <access_token>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "product_type": "PFL_CDL",
+        "file_urls": [
+          {
+            "file_url": "https://files.s3.ap-south-1.amazonaws.com/uploads/pan_card.jpg",
+            "document_id": "1"
+          },
+          {
+            "file_url": "https://files.s3.ap-south-1.amazonaws.com/uploads/aadhaar.jpg",
+            "document_id": "2"
+          },
+          {
+            "file_url": "https://files.s3.ap-south-1.amazonaws.com/uploads/gst_cert.jpg",
+            "document_id": "3"
+          }
+        ]
+      }'
+    ```
+
+    </CodeGroup>
+
+    **Response** — one entry per uploaded file, all sharing the same `batch_id`
+
+    ```json
+    [
+      {
+        "batch_id": "BATCH-30732-SIYKJ-20251121113228",
+        "document_id": "1",
+        "file_uuid": "03f03421-c933-46fc-a30c-ffb3ea8afd1d"
+      },
+      {
+        "batch_id": "BATCH-30732-SIYKJ-20251121113228",
+        "document_id": "2",
+        "file_uuid": "03f03422-c933-46fc-a30c-ffb3ea8afd1d"
+      },
+      {
+        "batch_id": "BATCH-30732-SIYKJ-20251121113228",
+        "document_id": "3",
+        "file_uuid": "03f03423-c933-46fc-a30c-ffb3ea8afd1d"
+      }
+    ]
+    ```
+
+    <Note>
+      Save the `batch_id` (e.g. `BATCH-30732-SIYKJ-20251121113228`). You will need it to retrieve extraction results. The `document_id` in each entry matches the value you supplied in the request, letting you map results back to your internal records.
+    </Note>
+
+    Atlas automatically detects the document type from the image content. You do not need to declare the type per file — the extracted `document_type` field in the response will tell you what Atlas identified.
+  </Step>
+  <Step title="Retrieve extraction results">
+    Fetch processed data for all documents in a batch. Results are paginated.
+
+    <CodeGroup>
+
+    ```bash curl
+    curl -X GET "https://api.helloatlas.in/v1/bulk/extracts?batch_id=BATCH-30732-SIYKJ-20251121113228&page=1&per_page=50" \
+      -H "Token: <access_token>"
+    ```
+
+    </CodeGroup>
+
+    **Query parameters**
+
+    | Parameter | Default | Description |
+    | --- | --- | --- |
+    | `batch_id` | — | Required. The batch ID returned from the upload step |
+    | `page` | `1` | Page number (1-indexed) |
+    | `per_page` | `50` | Number of records per page |
+
+    **Response**
+
+    ```json
+    {
+      "data": [
+        {
+          "document_id": "1",
+          "file_data": {
+            "document_type": "PAN",
+            "name_as_per_pan": { "value": "D MANIKANDAN DURAISAMY", "confidence_score": 0.95 },
+            "pan_number": { "value": "PLZPM5601F", "confidence_score": 0.99 },
+            "dob": { "value": "16/07/1986", "confidence_score": 0.98 },
+            "document_quality_flag": { "value": "original", "confidence_score": 0.97 }
+          }
+        },
+        {
+          "document_id": "2",
+          "file_data": {
+            "document_type": "AADHAAR",
+            "name": { "value": "D MANIKANDAN DURAISAMY", "confidence_score": 0.95 },
+            "aadhaar_number": { "value": "1234 5678 9012", "confidence_score": 0.99 },
+            "address": { "value": "4-CH-64, NEAR COMMUNITY HALL, BHILWARA, Rajasthan, 311001", "confidence_score": 0.95 },
+            "date_of_birth": { "value": "16/07/1986", "confidence_score": 0.98 }
+          }
+        }
+      ],
+      "page": 1,
+      "per_page": 50,
+      "total_pages": 1,
+      "has_next": false,
+      "has_prev": false
+    }
+    ```
+
+    **Pagination fields**
+
+    | Field | Description |
+    | --- | --- |
+    | `page` | Current page number |
+    | `per_page` | Records returned on this page |
+    | `total_pages` | Total number of pages available |
+    | `has_next` | `true` if there is a subsequent page |
+    | `has_prev` | `true` if there is a previous page |
+
+    Iterate through pages by incrementing the `page` parameter until `has_next` is `false`.
+  </Step>
+</Steps>
+
+## Document type auto-detection
+
+You do not need to specify the document type when uploading. Atlas infers the type from the image content and sets `document_type` in the response accordingly. Supported types include `PAN`, `AADHAAR`, `BANK_STATEMENT`, `GST_CERT`, `INVOICE`, `DELIVERY_ORDER`, `DRIVING_LICENSE`, `VOTER_ID`, `SHOP_ACT_LICENSE`, `SALE_DEED`, and many others.
+
+<Warning>
+  If Atlas cannot identify the document type, it returns an `UNRECOGNISED` error for that file. Ensure document images are legible and not obscured.
+</Warning>

@@ -1,0 +1,143 @@
+---
+title: "Address Match"
+description: "Use the Atlas Address Match API to fuzzy-compare a source address against multiple target addresses and score similarity for KYC verification."
+---
+
+The Atlas Address Match API provides fuzzy address comparison for KYC workflows. Given a single source address (for example, the address from an applicant's Aadhaar card), it compares that address against one or more target addresses (such as the address on an invoice, delivery order, or utility bill) and returns per-target similarity scores. This helps you programmatically flag address discrepancies without manual review.
+
+## Authentication
+
+The Address Match API uses static credentials rather than JWTs. Pass your `client_id` and `client_secret` directly as request headers on every call — there is no separate token generation step.
+
+```text
+client_id: <your-client-id>
+client_secret: <your-client-secret>
+```
+
+## Match addresses in batch
+
+`POST /v1/address/match/batch`
+
+Compare one source address against an array of target addresses in a single request. Each target entry carries an `index` value you assign — this index is echoed back in the response, giving you a stable way to map each result to the original target regardless of ordering.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST https://api.helloatlas.in/v1/address/match/batch \
+  -H "client_id: <your-client-id>" \
+  -H "client_secret: <your-client-secret>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "application_id": "lentra_app_001",
+    "source_address": "Flat 12, Green View Apartments, MG Road, Bangalore",
+    "target_addresses": [
+      {
+        "address": "12 Greenview Apt, Mahatma Gandhi Rd, Bengaluru",
+        "index": 0
+      },
+      {
+        "address": "45 Lake View, Whitefield, Bangalore",
+        "index": 1
+      }
+    ]
+  }'
+```
+
+</CodeGroup>
+
+**Request fields**
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `application_id` | Yes | Your internal application or case identifier |
+| `source_address` | Yes | The reference address to compare against (e.g. from Aadhaar OCR) |
+| `target_addresses` | Yes | Array of addresses to score; each must have `address` and `index` |
+
+**Response**
+
+```json
+{
+  "match_data": [
+    {
+      "source_address": "Flat 12, Green View Apartments, MG Road, Bangalore",
+      "target_address": "12 Greenview Apt, Mahatma Gandhi Rd, Bengaluru",
+      "similarity_score": 89.92,
+      "same_person_score": 9,
+      "index": 0,
+      "error_code": null,
+      "error_message": null
+    },
+    {
+      "source_address": "Flat 12, Green View Apartments, MG Road, Bangalore",
+      "target_address": "45 Lake View, Whitefield, Bangalore",
+      "similarity_score": null,
+      "same_person_score": null,
+      "index": 1,
+      "error_code": "422",
+      "error_message": "Unprocessable Entity: Address normalization failed for this target"
+    }
+  ]
+}
+```
+
+## Understanding the scores
+
+Two independent scores are returned for each successful target comparison.
+
+**`similarity_score` (0–100)**
+
+A floating-point measure of how textually similar the two address strings are after normalization. Higher is more similar:
+
+- **80–100** — Strong match; addresses are very likely the same location
+- **70–79** — Partial match; worth a closer look, could be abbreviation differences
+- **Below 70** — Low similarity; addresses are likely different locations
+
+In the example above, `"MG Road, Bangalore"` vs. `"Mahatma Gandhi Rd, Bengaluru"` scores 89.92, reflecting that Atlas normalizes common street abbreviations and city name variants.
+
+**`same_person_score` (0–10)**
+
+An integer score representing the likelihood that both addresses belong to the same individual. This incorporates contextual signals beyond raw string similarity. A score of 9 (out of 10) indicates high confidence it is the same person's address.
+
+## Partial success responses
+
+A single API call can return a mix of successes and per-target errors. When one target fails (for example, due to an address that cannot be parsed), the response still returns `200` and includes results for all other targets. The failing target entry will have `similarity_score: null`, `same_person_score: null`, and a non-null `error_code` and `error_message`.
+
+This means you should always check per-target `error_code` fields even when the HTTP status is `200`.
+
+```json
+{
+  "match_data": [
+    {
+      "source_address": "MG Road, Bangalore",
+      "target_address": "12 Greenview Apt, Bangalore",
+      "similarity_score": null,
+      "same_person_score": null,
+      "index": null,
+      "error_code": "400",
+      "error_message": "Bad Request: target_addresses is missing address or index"
+    }
+  ]
+}
+```
+
+## Common use case: Aadhaar address vs. invoice address
+
+A typical KYC workflow involves verifying that the address on a borrower's Aadhaar card matches the delivery address on a purchase invoice (for consumer durable loans) or the business address on a GST certificate. The address match API fits this pattern directly:
+
+1. Extract the applicant's address from Aadhaar OCR via the [Flow API](/guides/document-verification) or [Bulk API](/guides/bulk-processing)
+2. Use the raw `address` string (or `formatted_address` components) as `source_address`
+3. Pass the invoice or delivery order address as the target
+4. Flag cases where `similarity_score` is below your threshold for manual review
+
+## Error responses
+
+| Status | Meaning |
+| --- | --- |
+| `400` | Missing or malformed request fields (`source_address` or `target_addresses` absent) |
+| `401` | Invalid `client_id` or `client_secret` |
+| `422` | Request is well-formed but one or more addresses could not be normalized |
+| `503` | Address matching engine is temporarily unavailable; retry with backoff |
+
+<Warning>
+  A `503` response indicates a transient upstream dependency failure. Implement exponential backoff and retry logic in your integration for production resilience.
+</Warning>

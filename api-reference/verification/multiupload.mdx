@@ -1,0 +1,116 @@
+---
+title: "POST /multiupload — Upload Documents to Flow"
+sidebarTitle: "Upload Documents"
+description: "Upload one or more document file URLs to an existing verification flow. Atlas downloads each file, runs OCR extraction, and queues pairwise cross-document validation."
+---
+
+After initialising a flow with [POST /flow/init](/api-reference/verification/flow-init), submit all document URLs in a single call to this endpoint. Atlas will download each file, run OCR extraction, and queue cross-document validation automatically.
+
+## Endpoint
+
+```
+POST /verification/multiupload
+```
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+  JWT access token obtained from [POST /authtoken](/api-reference/auth/generate-token).
+</ParamField>
+
+## Request body
+
+<ParamField body="flow_uuid" type="string" required>
+  The UUID returned by [POST /flow/init](/api-reference/verification/flow-init). Ties these uploads to the correct verification session.
+</ParamField>
+
+<ParamField body="file_urls" type="array" required>
+  An array of file objects. You may include multiple documents in a single request.
+
+  <Expandable title="file_urls item">
+    <ParamField body="file_url" type="string" required>
+      A publicly accessible URL (S3 pre-signed URL or equivalent) pointing to the document file. Atlas fetches the file directly from this URL.
+    </ParamField>
+
+    <ParamField body="document_id" type="string" required>
+      Your own identifier for this document. Atlas echoes it back in the response and in all extraction results, letting you correlate Atlas output with your internal records.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Response
+
+The response is an array with one entry per uploaded file.
+
+<ResponseField name="file_uuid" type="string">
+  Atlas's UUID for this specific file. Unique across all uploads.
+</ResponseField>
+
+<ResponseField name="batch_id" type="string">
+  A batch identifier grouping all files submitted in this request (for example, `BATCH-30732-SIYKJ-20251121113228`).
+</ResponseField>
+
+<ResponseField name="document_id" type="string">
+  The `document_id` you provided during upload, echoed back for easy correlation.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url https://api.helloatlas.in/v3/verification/multiupload \
+  --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  --header "Content-Type: application/json" \
+  --data '{
+    "flow_uuid": "LOS-17cab13b-f437-49bc-9c08-55319b88b0eb",
+    "file_urls": [
+      {
+        "file_url": "https://files.s3.ap-south-1.amazonaws.com/uploads/invoice.jpg",
+        "document_id": "1"
+      },
+      {
+        "file_url": "https://files.s3.ap-south-1.amazonaws.com/uploads/delivery-order.jpg",
+        "document_id": "2"
+      },
+      {
+        "file_url": "https://files.s3.ap-south-1.amazonaws.com/uploads/imei-closeup.jpg",
+        "document_id": "3"
+      }
+    ]
+  }'
+```
+
+```json 201 Created
+[
+  {
+    "batch_id": "BATCH-30732-SIYKJ-20251121113228",
+    "document_id": "1",
+    "file_uuid": "03f03421-c933-46fc-a30c-ffb3ea8afd1d"
+  },
+  {
+    "batch_id": "BATCH-30732-SIYKJ-20251121113228",
+    "document_id": "2",
+    "file_uuid": "03f03422-c933-46fc-a30c-ffb3ea8afd1d"
+  },
+  {
+    "batch_id": "BATCH-30732-SIYKJ-20251121113228",
+    "document_id": "3",
+    "file_uuid": "03f03423-c933-46fc-a30c-ffb3ea8afd1d"
+  }
+]
+```
+
+</CodeGroup>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400`  | `Missing or empty required parameters: ['flow_uuid']` — a required field is absent from the request body. |
+| `422`  | External service failure (for example, Atlas could not reach the authentication URL you configured). |
+
+<Note>
+  The `document_id` field is your primary way to match Atlas extraction results back to your own documents. Choose a value that is unique within the flow and meaningful in your system (for example, a database record ID).
+</Note>

@@ -1,0 +1,129 @@
+---
+title: "Chat-Based Onboarding"
+description: "Guide applicants through document submission using the Atlas chat onboarding API — a conversational interface for customer-facing KYC collection."
+---
+
+Chat-based onboarding lets you embed a guided, conversational document collection experience into your customer-facing product. Instead of presenting a static upload form, you create a flow where an AI-driven chat interface guides applicants through submitting their KYC and income documents step by step. The Atlas onboarding API manages the conversation state, document acceptance, and extraction results.
+
+This guide covers the authentication lifecycle (including token refresh), document upload, and the structured `formatted_address` field available on address-bearing documents.
+
+## Authentication
+
+The onboarding service uses the same `Client-Id` / `Client-Secret` credential pattern as other Atlas APIs, but the token response also includes a `refresh_token`. This matters for customer-facing flows that may run longer than the access token's 3600-second lifespan.
+
+<Steps>
+  <Step title="Generate a token">
+    <CodeGroup>
+
+    ```bash curl
+    curl -X POST https://api.helloatlas.in/v1/verification/authtoken \
+      -H "Client-Id: <your-client-id>" \
+      -H "Client-Secret: <your-client-secret>"
+    ```
+
+    </CodeGroup>
+
+    **Response**
+
+    ```json
+    {
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "expires_in": 3600,
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+    ```
+  </Step>
+  <Step title="Upload documents">
+    Once authenticated, upload documents on behalf of the applicant using the multiupload endpoint. Pass the `flow_uuid` from your initialized flow along with one or more S3-hosted file URLs.
+
+    <CodeGroup>
+
+    ```bash curl
+    curl -X POST https://api.helloatlas.in/v1/verification/multiupload \
+      -H "Token: <access_token>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "flow_uuid": "ec57821d-d766-4e24-81ef-a2768094511b",
+        "file_urls": [
+          {
+            "file_url": "https://files.s3.ap-south-1.amazonaws.com/uploads/aadhaar_front.jpg",
+            "document_id": "101"
+          },
+          {
+            "file_url": "https://files.s3.ap-south-1.amazonaws.com/uploads/pan_card.jpg",
+            "document_id": "102"
+          }
+        ]
+      }'
+    ```
+
+    </CodeGroup>
+
+    **Response** — one entry per uploaded file
+
+    ```json
+    [
+      {
+        "file_uuid": "03f0341d-c933-46fc-a30c-ffb3ea8afd1d",
+        "batch_id": "BATCH-55193-DRTYJ-20250811084615",
+        "document_id": "101"
+      },
+      {
+        "file_uuid": "14e1452e-d044-57gd-b41d-00c4fb9bge2e",
+        "batch_id": "BATCH-55193-DRTYJ-20250811084615",
+        "document_id": "102"
+      }
+    ]
+    ```
+  </Step>
+</Steps>
+
+## Supported document types in onboarding
+
+The onboarding flow supports a broad set of KYC and income verification documents. Common types include:
+
+- **Identity**: `AADHAAR`, `PAN`, `DRIVING_LICENSE`, `VOTER_ID`, `PASSPORT`
+- **Business**: `GST_CERT`, `SHOP_ACT_LICENSE`, `UDYAM_CERT`, `FSSAI_CERTIFICATE`
+- **Financial**: `BANK_STATEMENT`, `PURCHASE_ORDER`
+- **Property**: `SALE_DEED`, `INDEX_2`, `RENT_AGREEMENT`, `SATBARA`
+- **Address proof**: `EBILL` (electricity bill)
+
+The document type is auto-detected from the image. See [Supported Documents](/resources/supported-documents) for a complete list of recognized document types.
+
+## The formatted\_address field
+
+For documents that contain address information — `AADHAAR`, `EBILL`, `SHOP_ACT_LICENSE`, and others — Atlas returns both a raw `address` string and a structured `formatted_address` object. The structured form makes it easy to extract specific components for downstream processing or address matching.
+
+**Example Aadhaar `formatted_address`**
+
+```json
+{
+  "document_type": "AADHAAR",
+  "name": { "value": "ASHMIT KUMAR", "confidence_score": 0.95 },
+  "address": {
+    "value": "S/O Mukesh Kumar, H. No. E - 376, No. 15 Ashok Nagar Shahdara Mandoli, Saboli North East Delhi - 110093",
+    "confidence_score": 0.95
+  },
+  "formatted_address": {
+    "state": { "value": "", "confidence_score": 1 },
+    "postcode": { "value": "110093", "confidence_score": 1 },
+    "address_line_1": { "value": "no. e 376 no. 15 ashok nagar shahdara", "confidence_score": 1 },
+    "address_line_2": { "value": "s/o mukesh kumar h. mandoli saboli north east", "confidence_score": 1 },
+    "city": { "value": "delhi", "confidence_score": 1 }
+  }
+}
+```
+
+**`formatted_address` components**
+
+| Field | Description |
+| --- | --- |
+| `state` | State or province (may be empty if not parseable) |
+| `postcode` | PIN/postal code |
+| `address_line_1` | Primary street and locality |
+| `address_line_2` | Secondary address details (relation, locality qualifiers) |
+| `city` | City name in lowercase |
+
+<Tip>
+  Use `formatted_address.postcode` and `formatted_address.city` as lightweight sanity checks before running a full address match via the Atlas Address Match API.
+</Tip>

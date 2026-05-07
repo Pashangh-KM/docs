@@ -1,0 +1,206 @@
+---
+title: "GET /extracts — Retrieve Verification Results"
+sidebarTitle: "Get Extracts"
+description: "Fetch the full OCR extractions and cross-document validation results for a completed verification flow, including per-document fields and pairwise similarity scores."
+---
+
+Call this endpoint after [GET /status](/api-reference/verification/status) reports `master_status: SUCCESS` (or `FAILED`) to retrieve the full extraction payload. The response contains per-document OCR fields and pairwise cross-check comparisons across all uploaded documents.
+
+## Endpoint
+
+```
+GET /verification/extracts
+```
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+  JWT access token obtained from [POST /authtoken](/api-reference/auth/generate-token).
+</ParamField>
+
+## Query parameters
+
+<ParamField query="flow_uuid" type="string" required>
+  The UUID of the completed flow, as returned by [POST /flow/init](/api-reference/verification/flow-init).
+</ParamField>
+
+## Response
+
+### `ocr_data` array
+
+Each item in `ocr_data` corresponds to one uploaded document.
+
+<ResponseField name="ocr_data" type="array">
+  List of OCR extraction results, one per uploaded document.
+
+  <Expandable title="ocr_data item">
+    <ResponseField name="data" type="object">
+      Document-type-specific extracted fields. The shape of this object varies by `document_type` (for example, `INVOICE`, `IMEI_CLOSEUP_IMAGE`, `DELIVERY_ORDER`). Each field typically contains a `value` and a `confidence_score`.
+    </ResponseField>
+
+    <ResponseField name="document_id" type="string">
+      The `document_id` you supplied during upload. Use this to match the result back to your internal records.
+    </ResponseField>
+
+    <ResponseField name="error_code" type="string">
+      Machine-readable error code if extraction failed. Common values:
+      - `INVALID_DOC` — the document was recognised but is invalid (for example, it contains multiple people in an open-box image).
+      - `UNRECOGNISED` — Atlas could not identify the document type.
+      Empty string when extraction succeeded.
+    </ResponseField>
+
+    <ResponseField name="error_reason" type="string">
+      Human-readable explanation corresponding to `error_code` (for example, `"multiple people"`, `"document not in list"`). Empty string when extraction succeeded.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### `cross_checks` array
+
+Each item represents a single pairwise field comparison between two documents.
+
+<ResponseField name="cross_checks" type="array">
+  Pairwise validation results across all uploaded documents.
+
+  <Expandable title="cross_checks item">
+    <ResponseField name="source_doc" type="string">
+      Document type of the source document (for example, `"DELIVERY_ORDER"`).
+    </ResponseField>
+
+    <ResponseField name="source_field_name" type="string">
+      The field name extracted from the source document (for example, `"dealer_address"`).
+    </ResponseField>
+
+    <ResponseField name="source_value" type="string">
+      The extracted text value from the source document field.
+    </ResponseField>
+
+    <ResponseField name="target_doc" type="string">
+      Document type of the target document being compared against (for example, `"INVOICE"`).
+    </ResponseField>
+
+    <ResponseField name="target_field_name" type="string">
+      The field name in the target document (for example, `"dealer_address"`).
+    </ResponseField>
+
+    <ResponseField name="target_value" type="string">
+      The extracted text value from the target document field.
+    </ResponseField>
+
+    <ResponseField name="similarity_score" type="integer">
+      A score from **0 to 100** indicating how closely the two field values match. Higher values indicate stronger agreement between documents.
+    </ResponseField>
+
+    <ResponseField name="name" type="string">
+      A descriptive name for this cross-check (for example, `"DEALER_ADDRESS"`, `"CUSTOMER_NAME"`, `"PHOTO_MATCH"`).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url "https://api.helloatlas.in/v3/verification/extracts?flow_uuid=c6a2ffd7-eb44-4d16-8b45-32adc2182a8b" \
+  --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+```json 200 OK
+{
+  "ocr_data": [
+    {
+      "data": {
+        "document_type": "INVOICE",
+        "customer_name": { "value": "Pashangh", "confidence_score": 0.9 },
+        "customer_address": { "value": "C1002 Falcon Tower Mumbai", "confidence_score": 0.0 },
+        "dealership_name": { "value": "Mobile Point", "confidence_score": 0.0 },
+        "dealer_address": { "value": "Shop number 3 SV road Mumbai", "confidence_score": 0.0 },
+        "dealer_gst": { "value": "29SFWYT8463N1Z", "confidence_score": 0.0 },
+        "total_invoice_amount": { "value": "", "confidence_score": 0.0 },
+        "invoice_date": { "value": "23-10-2025", "confidence_score": 0.0 },
+        "invoice_number": { "value": "4332", "confidence_score": 0.0 }
+      },
+      "document_id": "2332d12323isbjnfijbg",
+      "error_code": "",
+      "error_reason": ""
+    },
+    {
+      "data": {
+        "document_type": "IMEI_CLOSEUP_IMAGE",
+        "model": { "value": "V2123", "confidence_score": 0.0 },
+        "ram": { "value": "8GB", "confidence_score": 0.0 },
+        "rom": { "value": "128GB", "confidence_score": 0.0 },
+        "imei_number": { "value": ["36732632"], "confidence_score": 0.0 },
+        "price": { "value": 30000, "confidence_score": 0.0 }
+      },
+      "document_id": "2332d12323isbjnfijbg",
+      "error_code": "",
+      "error_reason": ""
+    },
+    {
+      "data": {},
+      "document_id": "",
+      "error_code": "UNRECOGNISED",
+      "error_reason": "document not in list"
+    },
+    {
+      "data": {
+        "document_type": "ASSET_OPEN_BOX_IMAGE",
+        "customer_present": { "value": "yes", "confidence_score": 0.0 },
+        "number_of_faces_visible": { "value": 3, "confidence_score": 0.0 }
+      },
+      "document_id": "",
+      "error_code": "INVALID_DOC",
+      "error_reason": "multiple people"
+    }
+  ],
+  "cross_checks": [
+    {
+      "source_doc": "DELIVERY_ORDER",
+      "source_field_name": "dealer_address",
+      "source_value": "D. No. 14-4-16, Anam Vari Street, Kapu Street, Abbai Reddy Complex, NELLORE. 524001",
+      "target_doc": "INVOICE",
+      "target_field_name": "dealer_address",
+      "target_value": "D. No. 14-4-16, Anam Vari Street, Kapu Street, 524001",
+      "similarity_score": 60,
+      "name": "DEALER_ADDRESS"
+    },
+    {
+      "source_doc": "DELIVERY_ORDER",
+      "source_field_name": "customer_name",
+      "source_value": "Pashangh",
+      "target_doc": "INVOICE",
+      "target_field_name": "customer_name",
+      "target_value": "Pashangh Irani",
+      "similarity_score": 90,
+      "name": "CUSTOMER_NAME"
+    },
+    {
+      "source_doc": "DELIVERY_ORDER",
+      "source_field_name": "customer_mobile_number",
+      "source_value": "8655126210",
+      "target_doc": "INVOICE",
+      "target_field_name": "mobile_number",
+      "target_value": "8655126210",
+      "similarity_score": 90,
+      "name": "CUSTOMER_MOBILE_NUMBER"
+    }
+  ]
+}
+```
+
+</CodeGroup>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400`  | `Missing required ['flow_uuid'] parameters` — the query parameter was not included. |
+| `401`  | `Invalid token` — the `Token` header is missing, expired, or invalid. |
+| `409`  | `Flow not found` — no flow exists for the provided `flow_uuid`. |
+
+<Warning>
+  Only call this endpoint after confirming `master_status` is `SUCCESS` or `FAILED` via [GET /status](/api-reference/verification/status). Calling `/extracts` on an in-progress flow may return incomplete results.
+</Warning>

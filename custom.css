@@ -1,0 +1,7 @@
+.nav-logo {
+  height: 150px !important;
+  width: auto;
+}
+#navbar > div:last-child {
+    padding-left: 0 !important;
+  }

@@ -1,0 +1,136 @@
+---
+title: "GET /bulk/extracts — Retrieve Batch Results"
+sidebarTitle: "Retrieve Results"
+description: "Fetch paginated OCR extraction results for a completed bulk processing batch. Pass the batch_id returned by the multiupload endpoint to retrieve extracted document data."
+---
+
+After you submit a batch with [POST /bulk/multiupload](/api-reference/bulk/multiupload), use this endpoint to retrieve the extracted document data. Results are returned as a paginated list keyed by your original `document_id` values. Call this endpoint repeatedly until you have collected all pages.
+
+## Endpoint
+
+```
+GET /bulk/extracts
+```
+
+## Authentication
+
+Pass the JWT token from `POST /bulk/authtoken` in the `Token` request header.
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+  JWT access token issued by `POST /bulk/authtoken`.
+</ParamField>
+
+## Query parameters
+
+<ParamField query="batch_id" type="string" required>
+  The batch identifier returned by [POST /bulk/multiupload](/api-reference/bulk/multiupload) (e.g., `"BATCH-69469-BBRSS-20260309081408"`).
+</ParamField>
+
+<ParamField query="page" type="integer" default="1">
+  Page number to retrieve. Starts at `1`.
+</ParamField>
+
+<ParamField query="per_page" type="integer" default="50">
+  Number of document records to return per page. Maximum is `50`.
+</ParamField>
+
+## Response
+
+<ResponseField name="data" type="array">
+  List of extracted document results for this page.
+
+  <Expandable title="data item properties">
+    <ResponseField name="document_id" type="string">
+      The `document_id` you supplied when uploading this file.
+    </ResponseField>
+
+    <ResponseField name="file_data" type="object">
+      Extracted fields from the document. The structure varies depending on the `document_type` Atlas detected. Each field is returned as an object with a `value` and a `confidence_score`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="page" type="integer">
+  The current page number in the result set.
+</ResponseField>
+
+<ResponseField name="per_page" type="integer">
+  Number of records returned on this page.
+</ResponseField>
+
+<ResponseField name="total_pages" type="integer">
+  Total number of pages available for this batch.
+</ResponseField>
+
+<ResponseField name="total_items" type="integer">
+  Total number of documents in this batch.
+</ResponseField>
+
+<ResponseField name="has_next" type="boolean">
+  `true` if there are more pages after this one.
+</ResponseField>
+
+<ResponseField name="has_prev" type="boolean">
+  `true` if there are pages before this one.
+</ResponseField>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400`  | Bad Request — `batch_id` is missing or invalid. |
+| `401`  | Unauthorized — the token is missing, invalid, or expired. |
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url 'https://api.helloatlas.in/v1/bulk/extracts?batch_id=BATCH-69469-BBRSS-20260309081408&page=1&per_page=50' \
+  --header 'Token: <YOUR_JWT_TOKEN>'
+```
+
+```json 200 Response
+{
+  "data": [
+    {
+      "document_id": "1",
+      "file_data": {
+        "document_type": "AADHAAR",
+        "name": {
+          "value": "D MANIKANDAN DURAISAMY",
+          "confidence_score": 0.95
+        },
+        "date_of_birth": {
+          "value": "16/07/1986",
+          "confidence_score": 0.98
+        },
+        "address": {
+          "value": "4-CH-64, NEAR COMMUNITY HALL, BHILWARA, BHILWARA, Bhilwara, Rajasthan, 311001",
+          "confidence_score": 0.95
+        },
+        "aadhaar_number": {
+          "value": "1234 5678 9012",
+          "confidence_score": 0.99
+        }
+      }
+    }
+  ],
+  "page": 1,
+  "per_page": 50,
+  "total_pages": 1,
+  "total_items": 1,
+  "has_next": false,
+  "has_prev": false
+}
+```
+
+</CodeGroup>
+
+
+<Note>
+  If `has_next` is `true`, increment the `page` parameter and call this endpoint again until you have retrieved all pages.
+</Note>

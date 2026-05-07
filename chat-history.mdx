@@ -1,0 +1,110 @@
+---
+title: "GET /chat-history — Retrieve Chat Messages"
+sidebarTitle: "Chat History"
+description: "Retrieve paginated chat history for a verification flow."
+---
+
+This endpoint returns the most recent chat messages for a given flow. It supports pagination so you can fetch messages incrementally.
+
+Use this to:
+- Display chat history in your UI
+- Resume conversations
+- Audit onboarding interactions
+
+## Endpoint
+
+```
+GET /verification/chat-history
+```
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+JWT access token for authentication.
+</ParamField>
+
+## Query parameters
+
+<ParamField query="flow_id" type="string" required>
+Unique identifier for the chat flow.
+</ParamField>
+
+<ParamField query="page" type="integer">
+Page number to retrieve. Default: `1`.
+</ParamField>
+
+<ParamField query="per_page" type="integer">
+Number of messages per page. Default: `10`.
+</ParamField>
+
+## Response
+
+<ResponseField name="data" type="array">
+List of chat messages.
+</ResponseField>
+
+<ResponseField name="page" type="integer">
+Current page number.
+</ResponseField>
+
+<ResponseField name="per_page" type="integer">
+Number of messages per page.
+</ResponseField>
+
+<ResponseField name="total_pages" type="integer">
+Total number of pages available.
+</ResponseField>
+
+<ResponseField name="total_items" type="integer">
+Total number of messages.
+</ResponseField>
+
+<ResponseField name="has_next" type="boolean">
+Indicates if more pages are available.
+</ResponseField>
+
+<ResponseField name="has_prev" type="boolean">
+Indicates if previous pages exist.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url "https://api.helloatlas.in/v2/verification/chat-history?flow_id=3fa85f64-5717-4562-b3fc-2c963f66afa6&page=1&per_page=10" \
+  --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+```json 200 OK
+{
+  "data": [
+    {
+      "message": "how are you?",
+      "sender": "user",
+      "external_document_id": "9a21f55e-3d7b-40b3-b8e0-bf31c73059e6",
+      "created_at": "2025-10-11T06:01:03"
+    }
+  ],
+  "page": 1,
+  "per_page": 10,
+  "total_pages": 5,
+  "total_items": 50,
+  "has_next": true,
+  "has_prev": false
+}
+```
+
+</CodeGroup>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400` | Invalid parameters (e.g., `page` must be integer) |
+| `401` | Invalid or expired token |
+
+<Note>
+Messages include both user and system responses. Use the `sender` field to differentiate between them when rendering the chat UI.
+</Note>

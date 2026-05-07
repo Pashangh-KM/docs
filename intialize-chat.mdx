@@ -1,0 +1,76 @@
+---
+title: "POST /flow/init — Initialize Chat Session"
+sidebarTitle: "Initialize Session"
+description: "Start a new chat-based onboarding session. Returns a flow_id used in all subsequent interactions."
+---
+
+This endpoint initializes a new chat-based onboarding session. Each session represents one borrower journey.
+
+## Endpoint
+
+POST /flow/init
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+  JWT access token obtained from /authtoken.
+</ParamField>
+
+## Request body
+
+<ParamField body="application_id" type="string" required>
+  Your internal identifier for the application.
+</ParamField>
+
+<ParamField body="product_type" type="string" required>
+  Defines onboarding flow and required documents.
+</ParamField>
+
+<ParamField body="username" type="string" required>
+  The name of the borrower who is being onboarded.
+</ParamField>
+
+<ParamField body="external_reference_id" type="string" required>
+  Your internal identifier for the user.
+</ParamField>
+
+<ParamField body="callback_url" type="string">
+  Webhook URL where Atlas sends final results and data.
+</ParamField>
+
+<ParamField body="chat_notification_url" type="string">
+  Webhook URL where Atlas sends the chat messages.
+</ParamField>
+
+## Response
+
+<ResponseField name="session_id" type="string">
+  Unique identifier for the chat session.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash Request
+curl --request POST \
+  --url https://api.helloatlas.in/v1/flow/init \
+  --header "Token: <TOKEN>" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "application_id": "12345",
+    "product_type": "POC_CDL"
+    "username": "Ajay"
+    "external_reference_id": "CDL32786732"
+    "callback_url": "https://your-system.example.com/atlas/callback"
+    "chat_notification_url": "https://your-system.example.com/atlas/chat"
+  }'
+```
+
+```bash Response
+{
+  "flow_id": "ec57821d-d766-4e24-81ef-a2768094511b"
+}
+```
+
+</CodeGroup>

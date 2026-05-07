@@ -1,0 +1,93 @@
+---
+title: "GET /status — Check Verification Flow Status"
+sidebarTitle: "Check Status"
+description: "Poll the processing status of a verification flow by flow_uuid. Returns four status fields: upload, processing, crosscheck, and master status with their current values."
+---
+
+After uploading documents with [POST /multiupload](/api-reference/verification/multiupload), poll this endpoint to track progress through each stage of the pipeline. When `master_status` reaches `SUCCESS` or `FAILED`, the flow is complete and you can call [GET /extracts](/api-reference/verification/extracts) to retrieve results.
+
+## Endpoint
+
+```
+GET /verification/status
+```
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+  JWT access token obtained from [POST /authtoken](/api-reference/auth/generate-token).
+</ParamField>
+
+## Query parameters
+
+<ParamField query="flow_uuid" type="string" required>
+  The UUID returned by [POST /flow/init](/api-reference/verification/flow-init).
+</ParamField>
+
+## Response
+
+<ResponseField name="upload_status" type="string">
+  Reflects whether Atlas has successfully ingested all uploaded files.
+
+  Possible values: `NOT_STARTED` | `IN_PROGRESS` | `SUCCESS` | `FAILED`
+</ResponseField>
+
+<ResponseField name="processing_status" type="string">
+  Reflects the OCR extraction stage for each document.
+
+  Possible values: `NOT_STARTED` | `IN_PROGRESS` | `SUCCESS` | `FAILED` | `PENDING`
+</ResponseField>
+
+<ResponseField name="crossheck_status" type="string">
+  Reflects pairwise cross-document validation (note: field name is spelled `crossheck_status` in the API response).
+
+  Possible values: `NOT_STARTED` | `PENDING` | `COMPLETED`
+</ResponseField>
+
+<ResponseField name="master_status" type="string">
+  The overall status of the flow. This is the primary field to watch when polling.
+
+  Possible values: `NOT_STARTED` | `IN_PROGRESS` | `SUCCESS` | `FAILED`
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url "https://api.helloatlas.in/v3/verification/status?flow_uuid=ec57821d-d766-4e24-81ef-a2768094511b" \
+  --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+```json 200 OK
+{
+  "upload_status": "SUCCESS",
+  "processing_status": "IN_PROGRESS",
+  "crossheck_status": "PENDING",
+  "master_status": "IN_PROGRESS"
+}
+```
+
+```json 200 OK (complete)
+{
+  "upload_status": "SUCCESS",
+  "processing_status": "SUCCESS",
+  "crossheck_status": "COMPLETED",
+  "master_status": "SUCCESS"
+}
+```
+
+</CodeGroup>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400`  | `Missing required ['flow_uuid'] parameters` — the query parameter was not included. |
+| `401`  | `Invalid token` — the `Token` header is missing, expired, or invalid. |
+| `409`  | `Flow not found` — no flow exists for the provided `flow_uuid`. |
+
+<Note>
+  Poll this endpoint until `master_status` is `SUCCESS` or `FAILED`. A reasonable polling interval is every 5–10 seconds. Once `master_status` is `SUCCESS`, call [GET /extracts](/api-reference/verification/extracts) to retrieve the full OCR and cross-check results.
+</Note>

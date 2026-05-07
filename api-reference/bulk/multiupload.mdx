@@ -1,0 +1,123 @@
+---
+title: "POST /bulk/multiupload — Batch Document Upload"
+sidebarTitle: "Batch Upload"
+description: "Upload a batch of document file URLs to Atlas for asynchronous bulk OCR extraction. Returns a per-file array with a shared batch_id for retrieving results."
+---
+
+Submit a list of document URLs to Atlas for asynchronous bulk OCR extraction. Atlas queues each document, processes it, and stores the results against the returned `batch_id`. You then use that `batch_id` with [GET /bulk/extracts](/api-reference/bulk/extracts) to retrieve the extracted data once processing is complete.
+
+<Note>
+  The Bulk Service does not support callbacks. You must poll [GET /bulk/extracts](/api-reference/bulk/extracts) to retrieve results.
+</Note>
+
+## Endpoint
+
+```
+POST /bulk/multiupload
+```
+
+## Authentication
+
+This endpoint requires a JWT token obtained from `POST /bulk/authtoken`. Pass it in the `Token` request header.
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+  JWT access token issued by `POST /bulk/authtoken`.
+</ParamField>
+
+## Request body
+
+<ParamField body="product_type" type="string" required>
+  Product type identifier for this batch. Example: `"POC_CDL"`.
+</ParamField>
+
+<ParamField body="file_urls" type="array" required>
+  List of document file objects to process. Each element must include both `file_url` and `document_id`.
+
+  <Expandable title="file_urls item properties">
+    <ParamField body="file_url" type="string" required>
+      A publicly accessible (or pre-signed) URL pointing to the document file. Accepted formats include JPEG, PNG, and PDF.
+    </ParamField>
+
+    <ParamField body="document_id" type="string" required>
+      Your own identifier for this document. Atlas echoes it back in the extracts response so you can map results to your records.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Response
+
+A `201 Created` response contains an array — one entry per uploaded document — each sharing the same `batch_id`.
+
+<ResponseField name="batch_id" type="string">
+  The batch identifier assigned to all documents in this upload (e.g., `"BATCH-30732-SIYKJ-20251121113228"`). Use this value when polling [GET /bulk/extracts](/api-reference/bulk/extracts).
+</ResponseField>
+
+<ResponseField name="document_id" type="string">
+  Echo of the `document_id` you provided for this file.
+</ResponseField>
+
+<ResponseField name="file_uuid" type="string">
+  Internal UUID Atlas assigned to the individual file. Useful for support queries.
+</ResponseField>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400`  | Bad Request — one or more required parameters are missing or malformed. |
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url https://api.helloatlas.in/v1/bulk/multiupload \
+  --header 'Content-Type: application/json' \
+  --header 'Token: <YOUR_JWT_TOKEN>' \
+  --data '{
+    "product_type": "POC_CDL",
+    "file_urls": [
+      {
+        "file_url": "https://files.s3.ap-south-1.amazonaws.com/uploads/files/sample1.jpg",
+        "document_id": "1"
+      },
+      {
+        "file_url": "https://files.s3.ap-south-1.amazonaws.com/uploads/files/sample2.jpg",
+        "document_id": "2"
+      },
+      {
+        "file_url": "https://files.s3.ap-south-1.amazonaws.com/uploads/files/sample3.jpg",
+        "document_id": "3"
+      }
+    ]
+  }'
+```
+```json 201 OK
+[
+  {
+    "batch_id": "BATCH-30732-SIYKJ-20251121113228",
+    "document_id": "1",
+    "file_uuid": "03f03421-c933-46fc-a30c-ffb3ea8afd1d"
+  },
+  {
+    "batch_id": "BATCH-30732-SIYKJ-20251121113228",
+    "document_id": "2",
+    "file_uuid": "03f03422-c933-46fc-a30c-ffb3ea8afd1d"
+  },
+  {
+    "batch_id": "BATCH-30732-SIYKJ-20251121113228",
+    "document_id": "3",
+    "file_uuid": "03f03423-c933-46fc-a30c-ffb3ea8afd1d"
+  }
+]
+```
+
+</CodeGroup>
+
+
+<Tip>
+  Save the `batch_id` immediately — all documents in the same upload share it, and you need it to fetch results.
+</Tip>

@@ -1,0 +1,147 @@
+---
+title: "Supported Documents"
+sidebarTitle: "Supported Docs"
+description: "Explore the 40+ document types Atlas can extract across KYC identity, business registration, financial, property, and asset image categories."
+---
+
+Atlas automatically classifies and extracts structured data from a wide range of documents used in financial workflows. You do not need to declare a document type at upload time — Atlas detects it from the image content and returns the appropriate fields in the `document_type`-specific payload within `ocr_data`.
+
+Each document type returns a distinct set of extracted fields, all following the same `{ "value": ..., "confidence_score": ... }` structure. For the full list of fields per document type, see [Supported Documents](/resources/supported-documents).
+
+## Document categories
+
+<AccordionGroup>
+  <Accordion title="Identity documents">
+    These documents establish individual identity and are used for KYC verification in lending applications.
+
+    | Document type | Description |
+    | --- | --- |
+    | `AADHAAR` | Indian national identity card. Extracts name, address, date of birth, and Aadhaar number. Includes a `redact_url` for a version of the document with the Aadhaar number masked — use this when storing or transmitting copies to comply with UIDAI guidelines. |
+    | `PAN` | Permanent Account Number card. Extracts name, father's name, date of birth, and PAN number. Also returns `document_quality_flag` to identify whether the document is an `original`, `xerox_copy`, or `photo_of_photo`. |
+    | `DRIVING_LICENSE` | State-issued driving licence. |
+    | `VOTER_ID` | Election Commission voter identity card. |
+    | `PASSPORT` | Indian passport. |
+
+    <Note>
+      The `document_quality_flag` field (values: `original`, `xerox_copy`, `photo_of_photo`) is currently returned for PAN cards. Use it to flag low-quality copies for manual review before making credit decisions.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Business documents">
+    These documents verify the legal registration and operational status of a business entity.
+
+    | Document type | Description |
+    | --- | --- |
+    | `GST_CERT` | GST registration certificate. Extracts GST number, legal name, address, constitution of business, and validity dates. |
+    | `UDYAM_CERT` | Udyam registration certificate for MSMEs. Extracts registration number, enterprise name, owner name, address, type of enterprise, and NIC codes. |
+    | `SHOP_ACT_LICENSE` | Maharashtra Shops and Establishments Act licence. Extracts establishment name, employer name, address, nature of business, and total employees. |
+    | `FSSAI` | Food Safety and Standards Authority of India licence. Extracts registration number, business name, address, kind of business, and validity dates. |
+    | `DRUG_LICENSE` | Drug licence issued under the Drugs and Cosmetics Act. |
+    | `PARTNERSHIP_DEED` | Partnership agreement between partners. Extracts partner names and firm details. |
+    | `Memorandum of Association` | Memorandum of Association of a company. |
+    | `Articles of Association` | Articles of Association of a company. |
+    | `Certificate of Incorporation` | Certificate of Incorporation issued by MCA. Extracts company name, CIN, and incorporation date. |
+    | `BOARD_RESOLUTION` | Board resolution authorizing specific actions (e.g., loan acceptance). |
+  </Accordion>
+
+  <Accordion title="Financial documents">
+    These documents capture transaction and financing details for loan underwriting.
+
+    | Document type | Description |
+    | --- | --- |
+    | `EBILL` | Electricity bill used for address verification. Extracts consumer name, address, and billing details. |
+    | `RTO_FORM_26` | Vehicle ownership certificate (Form 26). |
+    | `RTO_FORM_29` | Notice of transfer of ownership (Form 29). |
+    | `RTO_FORM_30` | Application for transfer of ownership (Form 30). |
+    | `RTO_FORM_34` | Hypothecation agreement form. |
+    | `RTO_FORM_35` | Termination of hypothecation form. |
+    | `RC_BOOK` | Vehicle registration certificate. Extracts owner name, registration number, engine and chassis details. |
+    | `INVOICE` | Dealer invoice for a product purchase. Extracts customer name, dealer details, product information, invoice amount, and hypothecation status. |
+    | `DELIVERY_ORDER` | Dealer delivery order. Extracts dealer name and address, customer name and delivery address, product details, serial/IMEI numbers, and EMI amount. |
+    | `BANK_STATEMENT` | Bank account statement. Extracts account number, IFSC code, bank name, account holder name, and statement period. |
+    | `MARGIN_MONEY_RECEIPT` | Receipt for margin/down payment. Extracts customer name, dealer name, product name, MMR amount, and hypothecation status. |
+    | `DEBIT_NOTE` | Dealer debit note for ancillary charges. Extracts customer name, insurance charges, RTO charges, accessory charges, and hypothecation charges. |
+    | `ACH_FORM` | Automated Clearing House mandate form. |
+    | `PURCHASE_ORDER` | Purchase order between buyer and seller. Extracts buyer/seller names, GSTINs, and total invoice amount. |
+    | `TAX_INVOICE` | GST tax invoice. |
+    | `INSURANCE` | Vehicle insurance policy. Extracts insured name, insurer, policy number, engine and chassis numbers, IDV, gross premium, tenure, and hypothecation status. |
+    | `ITR` | Income Tax Return document. Extracts PAN, total income, and filing details. |
+    | `SALARY_SLIP` | Salary slip issued by employer. Extracts employee name, employer name, net salary, and pay period. |
+  </Accordion>
+
+  <Accordion title="Property documents">
+    These documents are used in property loan and mortgage underwriting. Many are Maharashtra-specific revenue and registration records.
+
+    | Document type | Description |
+    | --- | --- |
+    | `SALE_DEED` | Registered sale deed for property transfer. |
+    | `INDEX_2` | Index II extract from the Sub-Registrar's office. Extracts owner names, mortgagor name, loan amount, property valuation, survey numbers, property area, and mortgage dates. |
+    | `SATBARA` | 7/12 extract (Satbara Utara) from Maharashtra land records. |
+    | `RENT_AGREEMENT` | Rental or leave-and-licence agreement. |
+    | `GIFT_DEED` | Registered gift deed. |
+    | `NAMUNA_8` | Namuna 8 form from Gujarat revenue records. |
+    | `CHATUSIMA` | Chatusima boundary document for land parcels. |
+    | `GAVTHAN_CERTIFICATE` | Gavthan certificate for village settlement land. |
+    | `PROPERTY_TAX_RECEIPT` | Municipal property tax payment receipt. |
+    | `PROPERTY_CARD` | Property card from urban land records. |
+    | `GUNTHEWARI_CERTIFICATE` | Gunthewari regularisation certificate. |
+    | `MEMORANDUM_OF_DEPOSIT_OF_TITLE_DEEDS` | Memorandum of deposit of title deeds (MODT) for equitable mortgage. |
+  </Accordion>
+
+  <Accordion title="Asset and image documents">
+    These document types process images rather than scanned paperwork, and are used to verify physical asset condition and identity at the point of delivery.
+
+    | Document type | Description |
+    | --- | --- |
+    | `IMEI_CLOSEUP_IMAGE` | Close-up photo of a device's IMEI/serial sticker. Extracts model, RAM, ROM, IMEI numbers, product SKU, price, and serial number. |
+    | `ASSET_OPEN_BOX_IMAGE` | Photo of an open-box asset. Detects whether the customer is present (`customer_present`) and counts the number of visible faces (`number_of_faces_visible`). |
+    | `AADHAR_EXTRACT_IMAGE` | Cropped Aadhaar photo extract. Detects whether a photo is present (`photo_present`). Used to verify that the physical Aadhaar card contains a photograph. |
+    | `PRODUCT_STICKER` | Product label or sticker image. |
+    | `GOLD_PLEDGE_CARDS` | Gold pledge card issued by lender. Extracts customer name, pledged asset details, and loan amount. |
+    | `GAS_BILL` | Gas utility bill used for address verification. |
+    | `PHONE_BILL` | Telephone bill used for address verification. |
+    | `WIFI_BILL` | Internet service bill used for address verification. |
+  </Accordion>
+</AccordionGroup>
+
+## Type-specific OCR fields
+
+Each `document_type` in the `ocr_data` array returns a different field schema. For example, an `AADHAAR` document returns `name`, `address`, `aadhaar_number`, and `date_of_birth`, while an `INVOICE` returns `customer_name`, `dealer_address`, `total_invoice_amount`, and so on.
+
+Your processing logic should branch on `document_type` to read the correct fields.
+
+```json
+{
+  "ocr_data": [
+    {
+      "document_id": "doc-001",
+      "error_code": "",
+      "error_reason": "",
+      "data": {
+        "document_type": "PAN",
+        "name_as_per_pan": { "value": "D MANIKANDAN DURAISAMY", "confidence_score": 0.95 },
+        "pan_number": { "value": "PLZPM5601F", "confidence_score": 0.99 },
+        "dob": { "value": "16/07/1986", "confidence_score": 0.98 },
+        "document_quality_flag": { "value": "original", "confidence_score": 0.97 }
+      }
+    }
+  ]
+}
+```
+
+## Extraction failures
+
+If Atlas cannot extract data from a document, the `data` object will be empty or partially populated, and the `error_code` and `error_reason` fields will contain a machine-readable code and a human-readable explanation.
+
+```json
+{
+  "document_id": "doc-002",
+  "error_code": "UNRECOGNISED",
+  "error_reason": "document not in list",
+  "data": {}
+}
+```
+
+Common error codes include `UNRECOGNISED` (document type not supported) and `INVALID_DOC` (document could not be processed, for example due to image quality or multiple subjects in frame).
+
+For details on every extracted field per document type, see [Supported Documents](/resources/supported-documents).

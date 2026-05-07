@@ -1,0 +1,143 @@
+---
+title: "API Error Codes"
+description: "Reference for all HTTP status codes, error_code fields, and document-level errors returned by the Atlas API, with a troubleshooting guide."
+---
+
+Every response from the Atlas API carries a standard HTTP status code. When a request fails, the response body includes an `error_code` and an `error_message` that tell you exactly what went wrong. Understanding these codes lets you build resilient integrations and diagnose issues quickly without guesswork.
+
+## HTTP status codes
+
+The table below lists every status code the Atlas API can return and what each one means in practice.
+
+| Code | Name | Description |
+| --- | --- | --- |
+| `200` | OK | The request succeeded. |
+| `201` | Created | The resource was created successfully (e.g., a JWT token or a flow). |
+| `400` | Bad Request | One or more required parameters are missing or malformed. |
+| `401` | Authentication Error | The `Client-Id` / `Client-Secret` pair is invalid, or the JWT token is missing, invalid, or expired. |
+| `409` | Resource Conflict | No flow was found matching the supplied `flow_uuid`. |
+| `410` | Resource Gone | The API version you are calling has been deprecated and is no longer supported. |
+| `422` | Unprocessable Entity | The request is syntactically valid but could not be processed — for example, address normalization failed for one or more inputs. |
+| `503` | Service Unavailable | A downstream dependency the Atlas API relies on is temporarily unavailable. |
+
+## Error response format
+
+All top-level errors use a consistent JSON envelope with two fields:
+
+```json
+{
+  "error_code": "401",
+  "error_message": "Authentication Error: Invalid client_id or client_secret"
+}
+```
+
+Both fields are strings. `error_code` contains the HTTP status code as a string, and `error_message` contains a human-readable explanation prefixed with the error category.
+
+### Example: 400 Bad Request
+
+```json
+{
+  "error_code": "400",
+  "error_message": "Bad Request: source_address or target_addresses is missing or invalid"
+}
+```
+
+### Example: 410 Resource Gone
+
+```json
+{
+  "error_code": "410",
+  "error_message": "Resource Gone: This API version is no longer supported"
+}
+```
+
+### Example: 503 Service Unavailable
+
+```json
+{
+  "error_code": "503",
+  "error_message": "Service Unavailable: Address matching engine is currently unavailable"
+}
+```
+
+## Document-level errors in OCR data
+
+When individual documents fail to extract, the error surfaces inside the `ocr_data` array rather than as a top-level HTTP error. Each entry in `ocr_data` includes an `error_code` and `error_reason` field alongside an empty `data` object:
+
+```json
+{
+  "ocr_data": [
+    {
+      "data": {},
+      "document_id": "doc-001",
+      "error_code": "INVALID_DOC",
+      "error_reason": "multiple people"
+    },
+    {
+      "data": {},
+      "document_id": "doc-002",
+      "error_code": "UNRECOGNISED",
+      "error_reason": "document not in list"
+    }
+  ]
+}
+```
+
+<Note>
+  A successful extraction has empty strings for both `error_code` and `error_reason`. Always check these fields even when the HTTP response is `200` or `201`.
+</Note>
+
+The two document-level error codes you will encounter are:
+
+| `error_code` | Meaning | Common `error_reason` values |
+| --- | --- | --- |
+| `INVALID_DOC` | The document was recognized but failed validation | `"multiple people"`, `"multiple faces"` |
+| `UNRECOGNISED` | The document type is not in Atlas's supported list | `"document not in list"` |
+
+## Target-level errors in address matching
+
+The Address Match API can succeed at the request level (HTTP `200`) while reporting per-target failures inside the `match_data` array. Each element carries its own `error_code` and `error_message`:
+
+```json
+{
+  "match_data": [
+    {
+      "source_address": "Flat 12, Green View Apartments, MG Road, Bangalore",
+      "target_address": "12 Greenview Apt, Mahatma Gandhi Rd, Bengaluru",
+      "similarity_score": 89.92,
+      "same_person_score": 9,
+      "index": 0,
+      "error_code": null,
+      "error_message": null
+    },
+    {
+      "source_address": "Flat 12, Green View Apartments, MG Road, Bangalore",
+      "target_address": "45 Lake View, Whitefield, Bangalore",
+      "similarity_score": null,
+      "same_person_score": null,
+      "index": 1,
+      "error_code": "422",
+      "error_message": "Unprocessable Entity: Address normalization failed for this target"
+    }
+  ]
+}
+```
+
+A `null` value for `error_code` indicates that target was processed successfully. A non-null value means that specific target failed while the others may have succeeded.
+
+## Troubleshooting
+
+Use this table as a quick reference when debugging integration issues.
+
+| Error | Likely cause | Recommended fix |
+| --- | --- | --- |
+| `401` Authentication Error | Your JWT token has expired (tokens last 3,600 seconds) | Re-generate a token by calling `/v3/verification/authtoken` or `/v1/docstream/authtoken` |
+| `400` Missing parameters | A required field such as `flow_uuid` was omitted from the request | Check the request body and include all required fields documented for that endpoint |
+| `409` Flow not found | The `flow_uuid` does not match any active flow | Use the `flow_uuid` returned from your `/flow/init` response |
+| `422` Unprocessable | Address normalization failed, or a downstream service could not process the input | Verify the address strings are valid; retry after a short delay for transient failures |
+| `INVALID_DOC` | The image contains multiple faces or is otherwise invalid for that document type | Ask the applicant to resubmit a single, correctly cropped document image |
+| `UNRECOGNISED` | The document type is not on the Atlas supported list | Check the [supported document types reference](/resources/supported-documents) and ensure you are submitting a recognized document |
+
+<Warning>
+  Do not cache or reuse JWT tokens indefinitely. Each token expires after `3600` seconds (`expires_in` field). Build automatic token refresh logic into your integration.
+</Warning>

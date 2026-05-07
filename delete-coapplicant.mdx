@@ -1,0 +1,66 @@
+---
+title: "DELETE /flow/coapplicant — Delete Co-applicant"
+sidebarTitle: "Delete Co-applicant"
+description: "Remove a co-applicant from an existing verification flow."
+---
+
+This endpoint removes a co-applicant from a verification flow using either `co_applicant_id` or `external_reference_id`.
+
+## Endpoint
+
+```
+DELETE /verification/flow/coapplicant
+```
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+JWT access token obtained from the auth API.
+</ParamField>
+
+## Request body
+
+<ParamField body="flow_id" type="string" required>
+UUID of the verification flow.
+</ParamField>
+
+<ParamField body="external_reference_id" type="string">
+External identifier of the co-applicant.
+</ParamField>
+
+<ParamField body="co_applicant_id" type="string">
+UUID of the co-applicant.
+</ParamField>
+
+## Response
+
+This endpoint returns **no content** on success.
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl --request DELETE \
+  --url https://api.helloatlas.in/v2/verification/flow/coapplicant \
+  --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  --header "Content-Type: application/json" \
+  --data '{
+    "flow_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "external_reference_id": "user-123"
+  }'
+```
+
+```text 204 No Content
+```
+
+</CodeGroup>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400` | Missing required parameters |
+| `401` | Invalid or missing token |
+| `409` | Applicant not found |
+| `410` | Applicant already deleted |

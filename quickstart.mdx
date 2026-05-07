@@ -1,0 +1,164 @@
+---
+title: "Quickstart"
+description: "Follow this step-by-step guide to authenticate, create a verification flow, upload documents, and retrieve structured OCR results from the Atlas API."
+---
+
+This guide walks you through a complete Atlas verification workflow from first request to final results. By the end, you will have authenticated, created a flow, submitted documents for processing, and retrieved structured OCR and cross-check data.
+
+<Note>
+  Atlas provides a sandbox environment for testing. Contact your team for sandbox credentials and the sandbox base URL (`/v1/docstream/...`). Sandbox calls use the same authentication pattern.
+</Note>
+
+<Steps>
+  <Step title="Get your credentials">
+    Contact the Atlas account team to receive your `Client-Id` and `Client-Secret`. Store these securely—you will exchange them for a JWT token in the next step.
+
+    You will also receive:
+
+    - The API base URL for your environment
+    - Your provisioned `product_type` (for example, `IDP_DEMO`)
+  </Step>
+  <Step title="Generate an access token">
+    Exchange your credentials for a JWT access token. The token expires after 3600 seconds (one hour).
+
+    **`POST /v1/docstream/authtoken`**
+
+    <CodeGroup>
+
+    ```bash Request
+    curl --request POST \
+      --url https://docstream.dev.kreditmind.com/v1/docstream/authtoken \
+      --header "Client-Id: your-client-id" \
+      --header "Client-Secret: your-client-secret"
+    ```
+
+    ```json Response
+    {
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "expires_in": 3600
+    }
+    ```
+
+    </CodeGroup>
+
+    Save the `access_token`. You will pass it as the `Token` header in every subsequent request.
+  </Step>
+  <Step title="Upload documents">
+    Submit one or more document URLs for processing. Each document needs a `file_url` (a pre-signed URL pointing to the file in storage) and a `document_id` (your own reference for tracking).
+
+    **`POST /v1/docstream/multiupload`**
+
+    | Field | Type | Required | Description |
+    | --- | --- | --- | --- |
+    | `product_type` | string | Yes | The assigned product type for your company |
+    | `file_urls` | array | Yes | List of file objects to process |
+    | `file_urls[].file_url` | string | Yes | Pre-signed URL to the document file |
+    | `file_urls[].document_id` | string | Yes | Your identifier for this document |
+
+    <CodeGroup>
+
+    ```bash Request
+    curl --request POST \
+      --url https://docstream.dev.kreditmind.com/v1/docstream/multiupload \
+      --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+      --header "Content-Type: application/json" \
+      --data '{
+        "product_type": "IDP_DEMO",
+        "file_urls": [
+          {
+            "file_url": "https://your-bucket.s3.ap-south-1.amazonaws.com/uploads/invoice.jpg",
+            "document_id": "1"
+          },
+          {
+            "file_url": "https://your-bucket.s3.ap-south-1.amazonaws.com/uploads/delivery-order.jpg",
+            "document_id": "2"
+          },
+          {
+            "file_url": "https://your-bucket.s3.ap-south-1.amazonaws.com/uploads/aadhaar.jpg",
+            "document_id": "3"
+          }
+        ]
+      }'
+    ```
+
+    ```json Response
+    [
+      {
+        "batch_id": "BATCH-30732-SIYKJ-20251121113228",
+        "document_id": "1",
+        "file_uuid": "03f03421-c933-46fc-a30c-ffb3ea8afd1d"
+      },
+      {
+        "batch_id": "BATCH-30732-SIYKJ-20251121113228",
+        "document_id": "2",
+        "file_uuid": "03f03422-c933-46fc-a30c-ffb3ea8afd1d"
+      },
+      {
+        "batch_id": "BATCH-30732-SIYKJ-20251121113228",
+        "document_id": "3",
+        "file_uuid": "03f03423-c933-46fc-a30c-ffb3ea8afd1d"
+      }
+    ]
+    ```
+
+    </CodeGroup>
+
+    Atlas begins processing immediately after upload. To get the data you can poll the extract endpoint in the next step.
+  </Step>
+  <Step title="Retrieve results">
+    Poll this endpoint to monitor the state of your flow. You can use this alongside or instead of the callback.
+
+    **`GET /v1/docstream/extracts?batch_id={batch_id}`**
+
+    <CodeGroup>
+
+    ```bash Request
+    curl --request GET \
+      --url "https://docstream.dev.kreditmind.com/v1/docstream/extracts?batch_id=BATCH-42326-YSBHNW-2026043786734639" \
+      --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    ```
+
+    ```json Response
+    {
+      "data": [
+        {
+          "document_id": "1",
+          "file_data": {
+            "document_type": "AADHAAR",
+            "name": {
+              "value": "Yarlagadda Vijaya Lakshmi",
+              "confidence_score": 1
+            },
+            "date_of_birth": {
+              "value": "16/04/1983",
+              "confidence_score": 1
+            },
+            "address": {
+              "value": "W/O: Yarlagadda Siva Rama Krishna...",
+              "confidence_score": 1
+            }
+          }
+        }
+      ],
+      "page": 1,
+      "per_page": 50,
+      "total_pages": 1,
+      "total_items": 5,
+      "has_next": false,
+      "has_prev": false
+    }
+    ```
+
+    </CodeGroup>
+  </Step>
+</Steps>
+
+## What to build next
+
+Now that you have end-to-end results, you can:
+
+- Set up your `callback_url` to receive results asynchronously and eliminate polling.
+- Set up your crosschecks to compare results and eliminate the need for human verification.
+- Map `error_code` values like `INVALID_DOC` and `UNRECOGNISED` into your exception handling workflow.
+- Apply `similarity_score` thresholds on `cross_checks` to automate accept/reject decisions.
+- Explore the full list of supported document types and their extracted fields in the [Supported Documents](/resources/supported-documents) reference.

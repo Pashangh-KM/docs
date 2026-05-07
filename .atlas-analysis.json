@@ -1,0 +1,119 @@
+{
+  "projectType": "api-service",
+  "projectName": "Atlas API Documentation",
+  "projectDescription": "Atlas is an AI-powered document verification and processing API platform that extracts data from KYC documents, verifies identities, and performs address matching for financial lending workflows.",
+  "theme": "luma",
+  "primaryColor": "#2563EB",
+  "lightColor": "#EFF6FF",
+  "darkColor": "#1E3A8A",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "authentication",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/flows",
+              "concepts/document-types",
+              "concepts/confidence-scores"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/document-verification",
+              "guides/bulk-processing",
+              "guides/chat-onboarding",
+              "guides/address-matching",
+              "guides/sandbox-testing"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "resources/error-codes",
+              "resources/supported-documents",
+              "resources/faq"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Authentication",
+            "pages": [
+              "api-reference/auth/generate-token",
+              "api-reference/auth/refresh-token"
+            ]
+          },
+          {
+            "group": "Document Verification",
+            "pages": [
+              "api-reference/verification/flow-init",
+              "api-reference/verification/multiupload",
+              "api-reference/verification/status",
+              "api-reference/verification/extracts"
+            ]
+          },
+          {
+            "group": "Bulk Service",
+            "pages": [
+              "api-reference/bulk/multiupload",
+              "api-reference/bulk/extracts"
+            ]
+          },
+          {
+            "group": "Address Match",
+            "pages": [
+              "api-reference/address/match-batch"
+            ]
+          },
+          {
+            "group": "Sandbox",
+            "pages": [
+              "api-reference/sandbox/multiupload",
+              "api-reference/sandbox/extracts"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "AI-powered OCR extraction from 30+ document types including Aadhaar, PAN, GST, invoices, and property documents",
+    "Flow-based document verification with callback support for async processing",
+    "Cross-document field validation to detect inconsistencies across uploaded documents",
+    "Batch document processing for high-volume use cases",
+    "Fuzzy address matching with similarity scores for KYC address verification",
+    "Chat-based onboarding flow for customer-facing document collection",
+    "Sandbox environment for integration testing without production data",
+    "JWT-based authentication with token refresh support"
+  ],
+  "publicApiSurface": [
+    "POST /v3/verification/authtoken",
+    "POST /v3/verification/flow/init",
+    "POST /v3/verification/multiupload",
+    "GET /v3/verification/status",
+    "GET /v3/verification/extracts",
+    "POST /v1/bulk/authtoken",
+    "POST /v1/bulk/multiupload",
+    "GET /v1/bulk/extracts",
+    "POST /v1/address/match/batch",
+    "POST /v1/verification/authtoken",
+    "POST /v1/verification/refresh-token",
+    "POST /v1/docstream/authtoken",
+    "POST /v1/docstream/multiupload",
+    "GET /v1/docstream/extracts"
+  ]
+}

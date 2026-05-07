@@ -1,0 +1,118 @@
+---
+title: "Understanding how the APIs work"
+sidebarTitle: "Understand the Flow"
+description: "Learn how Atlas verification flows group document uploads into a single session and process them asynchronously through a defined lifecycle."
+---
+
+A **flow** is the central session object in Atlas. Every time you verify documents for a loan application, you create a flow that groups all related uploads under a single `flow_uuid`. That identifier follows the request from initial setup through OCR extraction, cross-checks, and final result delivery — whether via callback or polling.
+
+## The flow lifecycle
+
+Atlas processes documents asynchronously. After you upload files, Atlas queues them for OCR extraction, runs pairwise cross-checks across documents, and then delivers the completed results to your `callback_url` or makes them available via the `/verification/extracts` endpoint.
+
+<Steps>
+  <Step title="Initialize the flow">
+    Call `POST /verification/flow/init` with your `application_id`, `product_type`, `auth_url`, and `callback_url`. Atlas returns a `flow_uuid` that you use for all subsequent calls in this session.
+
+    ```json
+    {
+      "flow_uuid": "ec57821d-d766-4e24-81ef-a2768094511b"
+    }
+    ```
+  </Step>
+  <Step title="Upload documents">
+    Call `POST /verification/multiupload` with the `flow_uuid` and an array of `file_urls`. Each entry pairs a pre-signed S3 URL with a `document_id` you supply for tracking. Atlas returns a `file_uuid` and `batch_id` for each uploaded file.
+  </Step>
+  <Step title="Atlas processes documents">
+    Atlas downloads each file, classifies the document type, runs OCR extraction to produce structured field output, and then executes cross-checks — pairwise comparisons of matching fields across documents (for example, `dealer_address` on `DELIVERY_ORDER` vs. `INVOICE`).
+
+    <Note>
+      You do not need to specify document types at upload time. Atlas auto-classifies each file. If a document cannot be classified, the OCR entry returns an `error_code` of `UNRECOGNISED`.
+    </Note>
+  </Step>
+  <Step title="Receive results">
+    Atlas posts the completed `CallbackData` payload to your `callback_url`. If you prefer polling, call `GET /v3/verification/status` to check progress, then retrieve the full payload from `GET /v3/verification/extracts` once `master_status` is `SUCCESS`.
+  </Step>
+</Steps>
+
+## Flow status fields
+
+The status endpoint returns four independent status fields, each tracking a different stage of the pipeline.
+
+| Field | Possible values | Description |
+| --- | --- | --- |
+| `upload_status` | `NOT_STARTED`, `IN_PROGRESS`, `SUCCESS`, `FAILED` | Whether all files have been successfully downloaded from your S3 URLs |
+| `processing_status` | `NOT_STARTED`, `IN_PROGRESS`, `SUCCESS`, `FAILED`, `PENDING` | OCR extraction status across all documents in the flow |
+| `crossheck_status` | `NOT_STARTED`, `PENDING`, `COMPLETED` | Status of pairwise field comparison across documents |
+| `master_status` | `NOT_STARTED`, `IN_PROGRESS`, `SUCCESS`, `FAILED` | Rolled-up status representing the overall flow completion |
+
+<Note>
+  Poll `master_status` to determine when results are ready. When it reaches `SUCCESS`, the full payload is available via `/verification/extracts`.
+</Note>
+
+## The flow\_uuid
+
+The `flow_uuid` is the primary key for the entire session. You must include it in every subsequent request:
+
+- `POST /verification/multiupload` — `flow_uuid` in the request body
+- `GET /verification/status` — `flow_uuid` as a query parameter
+- `GET /verification/extracts` — `flow_uuid` as a query parameter
+
+Store the `flow_uuid` immediately after calling `/flow/init`. There is no way to retrieve it later if it is lost.
+
+## Async processing and callbacks
+
+Atlas delivers results asynchronously. When processing completes, Atlas sends a `POST` request to your `callback_url` containing the full `CallbackData` object. Your endpoint must return a `2xx` response to acknowledge receipt.
+
+If you cannot use callbacks (for example, in a server-side polling workflow), use the status endpoint to poll until `master_status` is `SUCCESS`, then fetch results from `/verification/extracts`.
+
+<Warning>
+  Do not poll `/verification/status` more frequently than once every five seconds. For most flows, processing completes within 30–60 seconds depending on the number of documents.
+</Warning>
+
+## Cross-checks
+
+After OCR extraction completes, Atlas automatically runs cross-checks — pairwise field comparisons across documents in the same flow. Each cross-check compares a field from a source document against the corresponding field on a target document and returns a `similarity_score` from 0 to 100.
+
+Cross-checks are returned in both the callback payload and the `/extracts` response under the `cross_checks` array.
+
+```json
+{
+  "cross_checks": [
+    {
+      "source_doc": "DELIVERY_ORDER",
+      "source_field_name": "dealer_address",
+      "source_value": "D. No. 14-4-16, Anam Vari Street, Kapu Street, Abbai Reddy Complex, NELLORE. 524001",
+      "target_doc": "INVOICE",
+      "target_field_name": "dealer_address",
+      "target_value": "D. No. 14-4-16, Anam Vari Street, Kapu Street, 524001",
+      "similarity_score": 60,
+      "name": "DEALER_ADDRESS"
+    },
+    {
+      "source_doc": "DELIVERY_ORDER",
+      "source_field_name": "customer_name",
+      "source_value": "Pashangh",
+      "target_doc": "INVOICE",
+      "target_field_name": "customer_name",
+      "target_value": "Pashangh Irani",
+      "similarity_score": 90,
+      "name": "CUSTOMER_NAME"
+    },
+    {
+      "source_doc": "DELIVERY_ORDER",
+      "source_field_name": "customer_delivery_address",
+      "source_value": "D. No. 14-4-16, Anam Vari Street, Kapu Street, 524001",
+      "target_doc": "INVOICE",
+      "target_field_name": "customer_address",
+      "target_value": "D. No. 14-4-16, Anam Vari Street, Kapu Street, 524001",
+      "similarity_score": 90,
+      "name": "CUSTOMER_DELIVERY_ADDRESS"
+    }
+  ]
+}
+```
+
+The `name` field is a stable identifier for the check (for example, `DEALER_ADDRESS`, `CUSTOMER_NAME`) that you can use to consistently locate a specific comparison in your processing logic regardless of which documents are present.
+
+See [Confidence Scores and Extraction Quality](/concepts/confidence-scores) for guidance on interpreting `similarity_score` values.

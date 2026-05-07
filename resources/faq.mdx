@@ -1,0 +1,202 @@
+---
+title: "FAQs"
+description: "Answers to the most common questions about Atlas API authentication, document types, processing callbacks, cross-checks, and error handling."
+---
+
+This page collects the questions developers ask most often when integrating with the Atlas API. If your question is not covered here, check the [error codes reference](/resources/error-codes) or the [supported documents reference](/resources/supported-documents).
+
+<AccordionGroup>
+  <Accordion title="How long do JWT tokens last?">
+    JWT tokens issued by the Atlas authentication endpoints expire after **3,600 seconds (1 hour)**. This is communicated via the `expires_in` field in the token response:
+
+    ```json
+    {
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "expires_in": 3600
+    }
+    ```
+
+    You should build automatic token refresh logic into your integration. Attempting to use an expired token results in a `401 Authentication Error`. The token endpoints are:
+
+    - **Flow API / Document Verification:** `POST /v3/verification/authtoken`
+    - **Sandbox API:** `POST /v1/docstream/authtoken`
+
+    Pass your `Client-Id` and `Client-Secret` in request headers to obtain a new token.
+  </Accordion>
+
+  <Accordion title="Can I upload multiple documents at once?">
+    Yes. The `/v3/verification/multiupload` endpoint (and the Sandbox equivalent `/v1/docstream/multiupload`) accepts a `file_urls` array, allowing you to submit several documents in a single request:
+
+    ```json
+    {
+      "flow_uuid": "LOS-17cab13b-f437-49bc-9c08-55319b88b0eb",
+      "file_urls": [
+        { "file_url": "https://...", "document_id": "1" },
+        { "file_url": "https://...", "document_id": "2" },
+        { "file_url": "https://...", "document_id": "3" }
+      ]
+    }
+    ```
+
+    Each element in `file_urls` requires a `file_url` (a publicly accessible or pre-signed S3 URL) and a `document_id` (your own identifier used to correlate results). The response returns a `file_uuid` and `batch_id` for each uploaded file.
+  </Accordion>
+
+  <Accordion title="What is a flow_uuid and how do I get one?">
+    A `flow_uuid` is a unique identifier that groups all the documents belonging to a single loan application together. It is the primary key you use to upload documents, poll status, and retrieve results.
+
+    You obtain a `flow_uuid` by calling `POST /v3/verification/flow/init` with your application details:
+
+    ```json
+    {
+      "product_type": "PFL_CDL",
+      "application_id": "12321321",
+      "auth_url": "https://your-service.example.com/auth",
+      "callback_url": "https://your-service.example.com/callback"
+    }
+    ```
+
+    The response returns:
+
+    ```json
+    {
+      "flow_uuid": "ec57821d-d766-4e24-81ef-a2768094511b"
+    }
+    ```
+
+    Store this value. You must supply it in every subsequent call — multiupload, status checks, and extracts — for this application.
+  </Accordion>
+
+  <Accordion title="What is the difference between the Flow API and the Bulk API?">
+    The two APIs serve different use cases:
+
+    | Capability | Flow API | Bulk API |
+    | --- | --- | --- |
+    | Primary use case | Per-application document verification | High-volume batch document extraction |
+    | Cross-checks | Yes — pairwise field validation across documents (e.g., customer name on DELIVERY\_ORDER vs. INVOICE) | No |
+    | Callbacks | Yes — results pushed to your `callback_url` when processing completes | Not applicable |
+    | Status polling | Yes — `GET /v3/verification/status` | Not applicable |
+    | Key identifier | `flow_uuid` | `batch_id` |
+
+    Use the **Flow API** when you need cross-document validation and callbacks as part of a lending workflow. Use the **Bulk API** when you need to process large volumes of documents independently and simply retrieve the extracted fields.
+  </Accordion>
+
+  <Accordion title="How do I know when document processing is complete?">
+    You have two options:
+
+    **Option 1: Poll the status endpoint**
+
+    Call `GET /v3/verification/status?flow_uuid=<your-uuid>` and check the `master_status` field. Processing is complete when `master_status` is either `SUCCESS` or `FAILED`:
+
+    ```json
+    {
+      "upload_status": "SUCCESS",
+      "processing_status": "SUCCESS",
+      "crossheck_status": "COMPLETED",
+      "master_status": "SUCCESS"
+    }
+    ```
+
+    Possible `master_status` values are `NOT_STARTED`, `IN_PROGRESS`, `FAILED`, and `SUCCESS`.
+
+    **Option 2: Use a callback URL**
+
+    When you call `/flow/init`, supply a `callback_url`. Atlas will POST the full results payload (including `ocr_data` and `cross_checks`) to that URL when processing finishes. This eliminates the need to poll.
+
+    <Note>
+      Once `master_status` is `SUCCESS`, you can also retrieve the full results at any time by calling `GET /v3/verification/extracts?flow_uuid=<your-uuid>`.
+    </Note>
+  </Accordion>
+
+  <Accordion title="What happens if a document can't be extracted?">
+    If Atlas cannot extract data from a document, that document's entry in the `ocr_data` array will have a non-empty `error_code` and `error_reason` instead of populated `data`:
+
+    ```json
+    {
+      "data": {},
+      "document_id": "doc-001",
+      "error_code": "INVALID_DOC",
+      "error_reason": "multiple people"
+    }
+    ```
+
+    The two error codes you will encounter are:
+
+    - **`INVALID_DOC`** — The document was recognized but failed validation (e.g., an open-box image with multiple faces).
+    - **`UNRECOGNISED`** — The document type is not on Atlas's supported list.
+
+    The overall HTTP response is still `200` or `201` in these cases. You must inspect each `ocr_data` entry individually to detect per-document failures.
+  </Accordion>
+
+  <Accordion title="Can I test without production documents?">
+    Yes. The **Sandbox API** at `/v1/docstream/*` is specifically designed for testing and integration development without using real applicant documents.
+
+    The Sandbox endpoints mirror the production Flow API in terms of request and response shape:
+
+    | Action | Sandbox endpoint |
+    | --- | --- |
+    | Get a token | `POST /v1/docstream/authtoken` |
+    | Upload files | `POST /v1/docstream/multiupload` |
+    | Retrieve results | `GET /v1/docstream/extracts?batch_id=<id>` |
+
+    The Sandbox `multiupload` response returns a `batch_id` (instead of `flow_uuid` \+ individual `file_uuid` entries), and results are retrieved by `batch_id` rather than `flow_uuid`. The Sandbox supports the same document types as the production API.
+  </Accordion>
+
+  <Accordion title="What is the same_person_score in address matching?">
+    `same_person_score` is an integer from **0 to 10** returned by the Address Match API for each target address comparison. A higher score indicates a greater likelihood that the source and target addresses belong to the same person.
+
+    ```json
+    {
+      "source_address": "Flat 12, Green View Apartments, MG Road, Bangalore",
+      "target_address": "12 Greenview Apt, Mahatma Gandhi Rd, Bengaluru",
+      "similarity_score": 89.92,
+      "same_person_score": 9,
+      "index": 0,
+      "error_code": null,
+      "error_message": null
+    }
+    ```
+
+    It is distinct from `similarity_score` (a 0–100 float measuring string similarity). `same_person_score` applies contextual signals beyond literal string matching to assess identity likelihood. Use it as a decision input alongside your risk policy thresholds.
+  </Accordion>
+
+  <Accordion title="What is a cross-check?">
+    A cross-check is a pairwise field comparison that Atlas performs across two different documents in the same flow. It verifies that a field value on one document is consistent with the corresponding field on another.
+
+    For example, Atlas can verify that the `customer_name` on a DELIVERY\_ORDER matches the `customer_name` on an INVOICE:
+
+    ```json
+    {
+      "source_doc": "DELIVERY_ORDER",
+      "source_field_name": "customer_name",
+      "source_value": "Pashangh",
+      "target_doc": "INVOICE",
+      "target_field_name": "customer_name",
+      "target_value": "Pashangh Irani",
+      "similarity_score": 90,
+      "name": "CUSTOMER_NAME"
+    }
+    ```
+
+    The `similarity_score` (0–100 integer) reflects how closely the two values match. Cross-checks are available only in the Flow API and are returned in the `cross_checks` array of the callback payload or the `/extracts` response.
+  </Accordion>
+
+  <Accordion title="How do I handle Aadhaar numbers securely?">
+    The `aadhaar_number` field in AADHAAR extractions includes an additional property called `redact_url`:
+
+    ```json
+    {
+      "aadhaar_number": {
+        "value": "1234 5678 9012",
+        "confidence_score": 0.99,
+        "redact_url": "https://my-dummy-bucket.s3.amazonaws.com/path/to/aadhaar.jpeg"
+      }
+    }
+    ```
+
+    `redact_url` is a pre-signed S3 URL pointing to a version of the original Aadhaar document image where the Aadhaar number has been masked. Use this URL when you need to store or display the document without exposing the full 12-digit number, in compliance with UIDAI guidelines.
+
+    <Warning>
+      Pre-signed URLs have a limited validity window. Retrieve and store the redacted image promptly rather than persisting the URL itself.
+    </Warning>
+  </Accordion>
+</AccordionGroup>

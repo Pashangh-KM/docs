@@ -1,0 +1,118 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "Atlas API Documentation",
+  "theme": "luma",
+  "css": "/custom.css",
+  "colors": {
+    "primary": "#2563EB",
+    "light": "#EFF6FF",
+    "dark": "#00C062"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "authentication",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/flows",
+              "concepts/document-types",
+              "concepts/confidence-scores"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/document-verification",
+              "guides/bulk-processing",
+              "guides/chat-onboarding",
+              "guides/address-matching"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "resources/error-codes",
+              "resources/supported-documents",
+              "resources/faq"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Authentication",
+            "pages": [
+              "api-reference/auth/generate-token",
+              "api-reference/auth/refresh-token"
+            ]
+          },
+          {
+            "group": "Document Verification",
+            "pages": [
+              "api-reference/verification/flow-init",
+              "api-reference/verification/multiupload",
+              "api-reference/verification/status",
+              "api-reference/verification/extracts"
+            ]
+          },
+          {
+            "group": "Chat Based Onboarding",
+            "pages": [
+              "intialize-chat",
+              "upload-documents",
+              "polling",
+              "checklist",
+              "add-coapplicant",
+              "delete-coapplicant",
+              "chat-query",
+              "submit",
+              "chat-history"
+            ]
+          },
+          {
+            "group": "Bulk Service",
+            "pages": [
+              "api-reference/bulk/multiupload",
+              "api-reference/bulk/extracts"
+            ]
+          },
+          {
+            "group": "Address Match",
+            "pages": [
+              "api-reference/address/match-batch"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "links": []
+  },
+  "favicon": "/images/favicon.svg",
+  "logo": {
+    "light": "/images/logo.png",
+    "dark": "/images/logo_dark-removebg-preview.png"
+  },
+  "appearance": {
+    "default": "dark",
+    "strict": false
+  },
+  "background": {
+    "color": {
+      "light": "#FAFAFA"
+    }
+  }
+}

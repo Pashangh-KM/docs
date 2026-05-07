@@ -1,0 +1,94 @@
+---
+title: "POST /flow/coapplicant — Add Co-applicant"
+sidebarTitle: "Add Co-applicant"
+description: "Add one or more co-applicants to an existing verification flow."
+---
+
+This endpoint allows you to attach one or more co-applicants to an existing verification flow. Each co-applicant can have a unique `external_reference_id` and a set of required documents.
+
+## Endpoint
+
+```
+POST /verification/flow/coapplicant
+```
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+JWT access token obtained from the auth API.
+</ParamField>
+
+## Request body
+
+<ParamField body="flow_id" type="string" required>
+UUID of the verification flow.
+</ParamField>
+
+<ParamField body="co_applicants" type="array" required>
+List of co-applicants to be added.
+</ParamField>
+
+<ParamField body="co_applicants[].external_reference_id" type="string" required>
+Your unique identifier for the co-applicant.
+</ParamField>
+
+<ParamField body="co_applicants[].username" type="string" required>
+Name of the co-applicant.
+</ParamField>
+
+<ParamField body="co_applicants[].user_docs" type="array">
+List of required document types for this co-applicant.
+</ParamField>
+
+## Response
+
+<ResponseField name="created" type="array">
+List of successfully created co-applicants.
+</ResponseField>
+
+<ResponseField name="failed" type="array">
+List of co-applicants that failed to be created along with error details.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url https://api.helloatlas.in/v2/verification/flow/coapplicant \
+  --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  --header "Content-Type: application/json" \
+  --data '{
+    "flow_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "co_applicants": [
+      {
+        "external_reference_id": "user-123",
+        "username": "John Doe",
+        "user_docs": ["PAN", "AADHAAR"]
+      }
+    ]
+  }'
+```
+
+```json 201 Created
+{
+  "created": [
+    {
+      "co_applicant_id": "4ac93d4e-13c2-4cad-975d-d70da5f38e7d",
+      "external_reference_id": "user-123"
+    }
+  ],
+  "failed": []
+}
+```
+
+</CodeGroup>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400` | `co_applicants list cannot be empty` |
+| `401` | Invalid or missing token |
+| `409` | Flow not found |

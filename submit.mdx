@@ -1,0 +1,126 @@
+---
+title: "POST /flow/submit — Submit & Close Flow"
+sidebarTitle: "Submit Flow"
+description: "Submit verification flow data and optionally close the flow, returning extracted results."
+---
+
+This endpoint submits all processed data for a verification flow and optionally closes the flow. It returns the final extracted data across all uploaded documents.
+
+Use this when:
+- You want to fetch final structured OCR data
+- You want to explicitly close the flow after processing
+
+## Endpoint
+
+```
+POST /verification/flow/submit
+```
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+JWT access token obtained from the auth API.
+</ParamField>
+
+## Query parameters
+
+<ParamField query="flow_id" type="string" required>
+UUID of the verification flow.
+</ParamField>
+
+<ParamField query="close_flow" type="string">
+Whether to close the flow after submission. Allowed values: `yes`, `no`.
+</ParamField>
+
+## Request body
+
+<ParamField body="flow_id" type="string" required>
+UUID of the verification flow.
+</ParamField>
+
+<ParamField body="close_flow" type="string">
+Whether to close the flow after submission (`yes` or `no`).
+</ParamField>
+
+## Response
+
+<ResponseField name="flow_id" type="string">
+The flow UUID.
+</ResponseField>
+
+<ResponseField name="flow_params" type="object">
+Flow-level configuration parameters.
+</ResponseField>
+
+<ResponseField name="data" type="array">
+List of processed documents and their extracted data.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url "https://api.helloatlas.in/v2/verification/flow/submit?flow_id=3fa85f64-5717-4562-b3fc-2c963f66afa6&close_flow=yes" \
+  --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  --header "Content-Type: application/json" \
+  --data '{
+    "flow_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "close_flow": "yes"
+  }'
+```
+
+```json 200 OK
+{
+  "flow_id": "4477b35e-07d0-4324-b301-b946a26dae67",
+  "flow_params": {},
+  "data": [
+    {
+      "document_id": "123",
+      "external_reference_id": "1q2w3e",
+      "file_uuid": "db096806-41b1-4123-891d-b97d1d3cbdfe",
+      "data": {
+        "document_type": "PAN",
+        "name_as_per_pan": {
+          "value": "PASHANGH RAYOMAND IRANI",
+          "confidence_score": 0.9
+        },
+        "pan_number": {
+          "value": "AFQP19186N",
+          "confidence_score": 0.95
+        },
+        "dob": {
+          "value": "14/11/1998",
+          "confidence_score": 0.95
+        },
+        "is_original": {
+          "value": "yes",
+          "confidence_score": 0.6
+        }
+      }
+    },
+    {
+      "document_id": "124",
+      "external_reference_id": "",
+      "file_uuid": "17d3abc2-a669-463b-8cd4-2fc6f97b0691",
+      "data": {
+        "processing_error": "PROCESSING_FAILED"
+      }
+    }
+  ]
+}
+```
+
+</CodeGroup>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400` | Missing or invalid `flow_id` |
+| `401` | Invalid or missing token |
+
+<Note>
+If `close_flow` is set to `yes`, the flow will be marked as completed and no further documents can be uploaded. If set to `no`, the flow remains active for additional processing.
+</Note>

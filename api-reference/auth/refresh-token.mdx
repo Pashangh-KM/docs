@@ -1,0 +1,59 @@
+---
+title: "POST /refresh-token — Refresh Access Token"
+sidebarTitle: "Refresh Token"
+description: "Exchange a valid refresh token for a new JWT access token without re-entering your Client-Id and Client-Secret. Used in chat-based onboarding flows."
+---
+
+Use this endpoint to silently renew your Atlas session. Pass your current token in the `Token` header and receive a fresh JWT without needing to re-supply your `Client-Id` and `Client-Secret`.
+
+<Note>
+  This endpoint belongs to the **chat-based onboarding service** and uses the `/v1` path prefix. If you are using the document verification service exclusively, generate tokens directly via [POST /authtoken](/api-reference/auth/generate-token).
+</Note>
+
+## Endpoint
+
+```
+POST /verification/refresh-token
+```
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+  Your current valid token. This can be either an access token or a refresh token issued by a previous call to `/authtoken` or `/refresh-token`.
+</ParamField>
+
+## Response
+
+<ResponseField name="access_token" type="string">
+  A new signed JWT token. Use this value in the `Token` header of all subsequent protected requests.
+</ResponseField>
+
+<ResponseField name="expires_in" type="integer">
+  Lifetime of the new token in seconds.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url https://api.helloatlas.in/v1/verification/refresh-token \
+  --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+```json 201 Created
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expires_in": 3600
+}
+```
+
+</CodeGroup>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400`  | Token header is missing or the request is malformed. |
+| `401`  | `Invalid token` — the token is expired, revoked, or does not match any active session. |

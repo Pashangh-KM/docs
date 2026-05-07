@@ -1,0 +1,64 @@
+---
+title: "POST /authtoken — Generate JWT Token"
+sidebarTitle: "Generate Token"
+description: "Exchange your Client-Id and Client-Secret for a short-lived JWT access token. Pass the token in the Token header to authenticate every Atlas API request."
+---
+
+Call this endpoint once per session to obtain the JWT token required in the `Token` header of every subsequent Atlas API request. No prior authentication is needed — your credentials travel in request headers.
+
+## Endpoint
+
+```
+POST /verification/authtoken
+```
+
+## Request headers
+
+<ParamField header="Client-Id" type="string" required>
+  Your client identifier issued by Atlas during onboarding.
+</ParamField>
+
+<ParamField header="Client-Secret" type="string" required>
+  Your client secret paired with the `Client-Id`, issued by Atlas during onboarding.
+</ParamField>
+
+## Response
+
+<ResponseField name="access_token" type="string">
+  A signed JWT token. Pass this value in the `Token` header of all protected endpoints.
+</ResponseField>
+
+<ResponseField name="expires_in" type="integer">
+  Token lifetime in seconds. Atlas tokens expire after **3600 seconds** (1 hour).
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url https://api.helloatlas.in/v3/verification/authtoken \
+  --header "Client-Id: your-client-id" \
+  --header "Client-Secret: your-client-secret"
+```
+
+```json 201 Created
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expires_in": 3600
+}
+```
+
+</CodeGroup>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400`  | `Missing Client-Id or Client-Secret` — one or both headers were not included in the request. |
+| `401`  | `Invalid Client-Id or Client-Secret` — the credentials do not match any active Atlas account. |
+
+<Note>
+  Store the `access_token` securely (for example, in memory rather than in local storage) and refresh it before it expires. You can use the [POST /refresh-token](/api-reference/auth/refresh-token) endpoint to obtain a new token without re-sending your full credentials.
+</Note>

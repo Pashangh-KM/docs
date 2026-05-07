@@ -1,0 +1,79 @@
+---
+title: "GET /docs — Document Checklist"
+sidebarTitle: "Document Checklist"
+description: "Retrieve the checklist of required documents and their upload status for a flow."
+---
+
+This endpoint returns a map of document types with a boolean value indicating whether each document has been uploaded for a given flow.
+
+Use this to:
+- Show a checklist UI to users
+- Track missing documents
+- Drive next-step prompts in onboarding flows
+
+## Endpoint
+
+```
+GET /verification/docs
+```
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+JWT access token for authentication.
+</ParamField>
+
+## Query parameters
+
+<ParamField query="flow_id" type="string" required>
+UUID of the verification flow.
+</ParamField>
+
+<ParamField query="external_reference_id" type="string" required>
+External identifier for the applicant (or co-applicant).
+</ParamField>
+
+## Response
+
+Returns a key-value map:
+
+- **Key** → Document type  
+- **Value** → `true` (uploaded) or `false` (missing)
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url "https://api.helloatlas.in/v2/verification/docs?flow_id=3fa85f64-5717-4562-b3fc-2c963f66afa6&external_reference_id=user-123" \
+  --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+```json 200 OK
+{
+  "BANK_STATEMENT": true,
+  "EBILL": true,
+  "FSSAI_CERTIFICATE": true,
+  "GST_CERT": false,
+  "PAN": true,
+  "PURCHASE_ORDER": true,
+  "SHOP_ACT_LICENSE": false,
+  "UDYAM_CERT": false
+}
+```
+
+</CodeGroup>
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `400` | Missing or invalid parameters |
+| `401` | Invalid or missing token |
+| `409` | Applicant not found |
+| `410` | Applicant already deleted |
+
+<Note>
+The document list is dynamically determined based on the product configuration and applicant type. Use this endpoint to guide users on which documents are still pending.
+</Note>
