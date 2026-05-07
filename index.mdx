@@ -1,12 +1,12 @@
 ---
-title: "Atlas API Documentation"
-description: "Atlas AI Developer Platform"
+title: "Atlas AI API Documentation"
+description: "Atlas extracts data from KYC documents, verifies identities, and matches addresses for financial lending workflows. Get started in minutes."
 hideFooterPagination: true
 ---
 
-# Welcome to Atlas
+## Welcome to Atlas
 
-Atlas helps lenders automate onboarding, document verification, OCR extraction, and conversational borrower workflows.
+Atlas exposes four main services, each designed for a specific integration pattern.
 
 <CardGroup cols={2}>
   <Card title="Document Verification" icon="shield-check" href="/guides/document-verification">
@@ -22,3 +22,20 @@ Atlas helps lenders automate onboarding, document verification, OCR extraction, 
     Compare addresses using fuzzy matching and receive similarity scores for KYC checks.
   </Card>
 </CardGroup>
+
+## Get started in four steps
+
+<Steps>
+  <Step title="Get your credentials">
+    Obtain your `Client-Id` and `Client-Secret` from the Atlas dashboard or your account team.
+  </Step>
+  <Step title="Generate a token">
+    Exchange your credentials for a short-lived JWT access token using the `/authtoken` endpoint.
+  </Step>
+  <Step title="Initialize a flow">
+    Create a verification flow with your `application_id` and a `callback_url` to receive results asynchronously.
+  </Step>
+  <Step title="Upload documents and receive results">
+    POST document URLs to the multiupload endpoint. Atlas extracts data and delivers structured results to your callback URL.
+  </Step>
+</Steps>
