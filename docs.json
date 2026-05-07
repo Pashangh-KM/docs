@@ -103,8 +103,8 @@
   },
   "favicon": "/images/favicon.svg",
   "logo": {
-    "light": "/images/logo.png",
-    "dark": "/images/logo_dark-removebg-preview.png"
+    "light": "/images/logo_light_new.png",
+    "dark": "/images/logo_dark_new.png"
   },
   "appearance": {
     "default": "dark",
