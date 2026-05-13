@@ -3,20 +3,21 @@ title: "Quickstart"
 description: "Follow this step-by-step guide to authenticate, create a verification flow, upload documents, and retrieve structured OCR results from the Atlas API."
 ---
 
-This guide walks you through a complete Atlas verification workflow from first request to final results. By the end, you will have authenticated, created a flow, submitted documents for processing, and retrieved structured OCR and cross-check data.
+This guide walks you through a complete Atlas verification workflow from first request to final results. By the end, you will have authenticated, created a flow, submitted documents for processing, and retrieved structured OCR data.
 
-<Note>
-  Atlas provides a sandbox environment for testing. Contact your team for sandbox credentials and the sandbox base URL (`/v1/docstream/...`). Sandbox calls use the same authentication pattern.
-</Note>
+<Card title="Sandbox Base URL">
+  ```bash
+  https://docstream.dev.kreditmind.com
+  ```
+
+  All API endpoints in this guide are relative to this base URL.
+</Card>
 
 <Steps>
   <Step title="Get your credentials">
     Contact the Atlas account team to receive your `Client-Id` and `Client-Secret`. Store these securely—you will exchange them for a JWT token in the next step.
 
-    You will also receive:
-
-    - The API base URL for your environment
-    - Your provisioned `product_type` (for example, `IDP_DEMO`)
+    You will also receive your provisioned `product_type` (for example, `IDP_DEMO`)
   </Step>
   <Step title="Generate an access token">
     Exchange your credentials for a JWT access token. The token expires after 3600 seconds (one hour).
