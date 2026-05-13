@@ -108,13 +108,13 @@ This guide walks you through a complete Atlas verification workflow from first r
   <Step title="Retrieve results">
     Poll this endpoint to monitor the state of your flow. You can use this alongside or instead of the callback.
 
-    **`GET /v1/docstream/extracts?batch_id={batch_id}`**
+    **`GET /v1/docstream/extracts?batch_id={batch_id}&page=1&per_page=50`**
 
     <CodeGroup>
 
     ```bash Request
     curl --request GET \
-      --url "https://docstream.dev.kreditmind.com/v1/docstream/extracts?batch_id=BATCH-42326-YSBHNW-2026043786734639" \
+      --url "https://docstream.dev.kreditmind.com/v1/docstream/extracts?batch_id=BATCH-42326-YSBHNW-2026043786734639&page=1&per_page=50" \
       --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     ```
 
