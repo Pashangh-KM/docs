@@ -62,8 +62,8 @@
           {
             "group": "IDP Extraction",
             "pages": [
-              "upload-documents-1",
-              "get-extracts"
+              "api-reference/idp/upload-documents",
+              "api-reference/idp/get-extracts"
             ]
           },
           {
@@ -78,15 +78,15 @@
           {
             "group": "Chat Based Onboarding",
             "pages": [
-              "intialize-chat",
-              "upload-documents",
-              "polling",
-              "checklist",
-              "add-coapplicant",
-              "delete-coapplicant",
-              "chat-query",
-              "submit",
-              "chat-history"
+              "api-reference/chat/intialize-chat",
+              "api-reference/chat/upload-documents",
+              "api-reference/chat/polling",
+              "api-reference/chat/checklist",
+              "api-reference/chat/add-coapplicant",
+              "api-reference/chat/delete-coapplicant",
+              "api-reference/chat/chat-query",
+              "api-reference/chat/submit",
+              "api-reference/chat/chat-history"
             ]
           },
           {
