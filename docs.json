@@ -32,6 +32,7 @@
           {
             "group": "Guides",
             "pages": [
+              "guides/idp-extraction",
               "guides/document-verification",
               "guides/bulk-processing",
               "guides/chat-onboarding",
@@ -56,6 +57,13 @@
             "pages": [
               "api-reference/auth/generate-token",
               "api-reference/auth/refresh-token"
+            ]
+          },
+          {
+            "group": "IDP Extraction",
+            "pages": [
+              "upload-documents-1",
+              "get-extracts"
             ]
           },
           {

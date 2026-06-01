@@ -1,0 +1,206 @@
+---
+title: "IDP Extraction"
+description: "Extract structured data from unstructured documents using Atlas IDP APIs. Upload documents, retrieve extracted fields, and receive results through polling or callbacks."
+---
+
+Atlas IDP Extraction APIs allow you to submit documents for OCR processing and receive structured JSON outputs containing extracted fields, confidence scores, document classifications, and validation metadata.
+
+<Note>
+  **Base URL**
+
+  `https://docstream.dev.kreditmind.com`
+
+  All endpoints in this guide are relative to this base URL.
+</Note>
+
+<Steps>
+  <Step title="Generate an access token">
+    Authenticate using your assigned credentials.
+
+    ### Endpoint
+
+    ```http
+    POST /v1/docstream/authtoken
+    ```
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl --request POST \
+      --url https://docstream.dev.kreditmind.com/v1/docstream/authtoken \
+      --header "Client-Id: your-client-id" \
+      --header "Client-Secret: your-client-secret"
+    ```
+
+    ```json Response
+    {
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "expires_in": 3600
+    }
+    ```
+
+    </CodeGroup>
+
+    The returned `access_token` must be passed as the `Token` header in all subsequent requests.
+  </Step>
+  <Step title="Upload documents for extraction">
+    Submit one or more document URLs for processing.
+
+    ### Endpoint
+
+    ```http
+    POST /v1/docstream/multiupload
+    ```
+
+    ### Request fields
+
+    | Field | Type | Required | Description |
+    | --- | --- | --- | --- |
+    | `product_type` | string | Yes | Product type assigned by Atlas |
+    | `file_urls` | array | Yes | List of documents to process |
+    | `file_urls[].file_url` | string | Yes | Pre-signed URL of the document |
+    | `file_urls[].document_id` | string | Yes | Your internal document reference |
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl --request POST \
+      --url https://docstream.dev.kreditmind.com/v1/docstream/multiupload \
+      --header "Token: your-access-token" \
+      --header "Content-Type: application/json" \
+      --data '{
+        "product_type": "LOAN_APP",
+        "file_urls": [
+          {
+            "file_url": "https://your-bucket.s3.ap-south-1.amazonaws.com/pan.jpg",
+            "document_id": "001"
+          },
+          {
+            "file_url": "https://your-bucket.s3.ap-south-1.amazonaws.com/aadhaar.jpg",
+            "document_id": "002"
+          }
+        ]
+      }'
+    ```
+
+    ```json Response
+    {
+      "batch_id": "BATCH-30732-SIYKJ-20251121113228"
+    }
+    ```
+
+    </CodeGroup>
+
+    Atlas immediately starts processing the uploaded documents.
+  </Step>
+  <Step title="Poll extraction results">
+    Retrieve extracted OCR data using the returned `batch_id`.
+
+    ### Endpoint
+
+    ```http
+    GET /v1/docstream/extracts
+    ```
+
+    ### Query Parameters
+
+    | Parameter | Required | Description |
+    | --- | --- | --- |
+    | `batch_id` | Yes | Batch identifier returned from upload |
+    | `page` | No | Page number (default: 1) |
+    | `per_page` | No | Number of results per page |
+
+    <CodeGroup>
+
+    ```bash cURL
+    curl --request GET \
+      --url "https://docstream.dev.kreditmind.com/v1/docstream/extracts?batch_id=BATCH-30732-SIYKJ-20251121113228&page=1&per_page=50" \
+      --header "Token: your-access-token"
+    ```
+
+    ```json Response
+    {
+      "data": [
+        {
+          "document_id": "001",
+          "file_data": {
+            "document_type": "PAN",
+            "name_as_per_pan": {
+              "value": "John Doe",
+              "confidence_score": 0.99
+            },
+            "pan_number": {
+              "value": "ABCDE1234F",
+              "confidence_score": 0.98
+            },
+            "dob": {
+              "value": "17/10/1991",
+              "confidence_score": 0.97
+            }
+          }
+        }
+      ],
+      "page": 1,
+      "per_page": 50,
+      "total_pages": 1,
+      "total_items": 1,
+      "has_next": false,
+      "has_prev": false
+    }
+    ```
+
+    </CodeGroup>
+  </Step>
+</Steps>
+
+## Callback Support
+
+Atlas supports asynchronous result delivery through callbacks.
+
+Share the following details with the Atlas team during onboarding:
+
+- `callback_url` — Endpoint where extracted results should be delivered
+- `auth_url` — Endpoint Atlas can call to obtain authentication credentials before posting results
+
+Atlas maintains the callback configuration on our end, so these URLs only need to be shared once during setup.
+
+Once processing is complete, Atlas will automatically POST the extraction results to your configured callback endpoint.
+
+<Note>
+  Callback delivery is recommended for production environments as it eliminates the need for continuous polling and provides results as soon as processing is completed.
+</Note>
+
+### Example callback payload
+
+```json
+{
+  "data": [
+    {
+      "document_id": "001",
+      "file_data": {
+        "document_type": "AADHAAR",
+        "name": {
+          "value": "Yarlagadda Vijaya Lakshmi",
+          "confidence_score": 1
+        },
+        "date_of_birth": {
+          "value": "16/04/1983",
+          "confidence_score": 1
+        },
+        "address": {
+          "value": "W/O: Yarlagadda Siva Rama Krishna...",
+          "confidence_score": 1
+        }
+      }
+    }
+  ],
+  "page": 1,
+  "per_page": 50,
+  "total_pages": 1,
+  "total_items": 5,
+  "has_next": false,
+  "has_prev": false
+}
+```
+
+Refer to the **Supported Documents** section for the complete field-level extraction reference for every document type.

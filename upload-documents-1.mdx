@@ -1,0 +1,89 @@
+---
+title: "POST /multiupload — Upload Documents for Extraction"
+sidebarTitle: "Upload Documents"
+description: "Upload one or more document file URLs for OCR extraction. Atlas downloads each file, classifies the document, and returns a batch ID for tracking."
+---
+
+## Endpoint
+
+```text
+POST /v1/docstream/multiupload
+```
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+  JWT access token obtained from [POST /authtoken](/api-reference/auth/generate-token).
+</ParamField>
+
+## Request body
+
+<ParamField body="product_type" type="string" required>
+  The product type assigned to your organization. This determines the document classification and extraction workflow that Atlas applies.
+</ParamField>
+
+<ParamField body="file_urls" type="array" required>
+  An array of file objects. Multiple documents can be submitted in a single request.
+
+  <Expandable title="file_urls item">
+    <ParamField body="file_url" type="string" required>
+      A publicly accessible URL (typically a pre-signed S3 URL) pointing to the document image or PDF. Atlas downloads the file directly from this URL.
+    </ParamField>
+
+    <ParamField body="document_id" type="string" required>
+      Your internal identifier for the document. This value is returned in extraction responses so you can map Atlas results back to your own records.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Response
+
+<ResponseField name="batch_id" type="string">
+  A unique identifier assigned to this upload batch. Use this value to retrieve extraction results from the extracts API.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl --request POST \
+  --url https://docstream.dev.kreditmind.com/v1/docstream/multiupload \
+  --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  --header "Content-Type: application/json" \
+  --data '{
+    "product_type": "LOAN_APP",
+    "file_urls": [
+      {
+        "file_url": "https://files.s3.ap-south-1.amazonaws.com/uploads/files/sample1.jpg?response-content-disposition=inline",
+        "document_id": "1"
+      },
+      {
+        "file_url": "https://files.s3.ap-south-1.amazonaws.com/uploads/files/sample2.jpg?response-content-disposition=inline",
+        "document_id": "2"
+      },
+      {
+        "file_url": "https://files.s3.ap-south-1.amazonaws.com/uploads/files/sample3.jpg?response-content-disposition=inline",
+        "document_id": "3"
+      }
+    ]
+  }'
+```
+
+```json 201 Created
+{
+  "batch_id": "BATCH-30732-SIYKJ-20251121113228"
+}
+```
+
+</CodeGroup>
+
+## Error responses
+
+| Status | Meaning |
+| --- | --- |
+| `400` | `Missing or empty required parameters` — one or more required fields are missing from the request body. |
+
+<Note>
+  Atlas begins processing immediately after the upload is accepted. Save the returned `batch_id` and use it with the extracts API to retrieve OCR and extraction results.
+</Note>

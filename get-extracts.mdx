@@ -1,0 +1,169 @@
+---
+title: "GET /extracts — Retrieve Extracted Document Data"
+sidebarTitle: "Get Extracts"
+description: "Fetch extracted OCR data for all documents processed within a batch. Supports pagination and callback-based delivery."
+---
+
+## Endpoint
+
+```text
+GET /v1/docstream/extracts
+```
+
+## Request headers
+
+<ParamField header="Token" type="string" required>
+  JWT access token obtained from [POST /authtoken](/api-reference/auth/generate-token).
+</ParamField>
+
+## Query parameters
+
+<ParamField query="batch_id" type="string" required>
+  The batch identifier returned from the upload API. Atlas returns extracted document data associated with this batch.
+
+  Example: `BATCH-69469-BBRSS-20260309081408`
+</ParamField>
+
+<ParamField query="page" type="integer">
+  Page number for pagination.
+
+  Default: `1`
+</ParamField>
+
+<ParamField query="per_page" type="integer">
+  Number of records returned per page.
+
+  Default: `50`
+</ParamField>
+
+## Response
+
+<ResponseField name="data" type="array">
+  Array of extracted document results.
+</ResponseField>
+
+<ResponseField name="document_id" type="string">
+  The document identifier provided during upload.
+</ResponseField>
+
+<ResponseField name="file_data" type="object">
+  Structured OCR output for the document. Fields vary depending on the detected document type.
+</ResponseField>
+
+<ResponseField name="page" type="integer">
+  Current page number.
+</ResponseField>
+
+<ResponseField name="per_page" type="integer">
+  Number of records returned in the response.
+</ResponseField>
+
+<ResponseField name="total_pages" type="integer">
+  Total number of pages available.
+</ResponseField>
+
+<ResponseField name="total_items" type="integer">
+  Total number of extracted documents available.
+</ResponseField>
+
+<ResponseField name="has_next" type="boolean">
+  Indicates whether additional pages are available.
+</ResponseField>
+
+<ResponseField name="has_prev" type="boolean">
+  Indicates whether previous pages are available.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl --request GET \
+  --url "https://docstream.dev.kreditmind.com/v1/docstream/extracts?batch_id=BATCH-69469-BBRSS-20260309081408&page=1&per_page=50" \
+  --header "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+```json 200 OK
+{
+  "data": [
+    {
+      "document_id": "1",
+      "file_data": {
+        "document_type": "AADHAAR",
+        "name": {
+          "value": "Yarlagadda Vijaya Lakshmi",
+          "confidence_score": 1
+        },
+        "date_of_birth": {
+          "value": "16/04/1983",
+          "confidence_score": 1
+        },
+        "address": {
+          "value": "W/O: Yarlagadda Siva Rama Krishna...",
+          "confidence_score": 1
+        }
+      }
+    }
+  ],
+  "page": 1,
+  "per_page": 50,
+  "total_pages": 1,
+  "total_items": 5,
+  "has_next": false,
+  "has_prev": false
+}
+```
+
+</CodeGroup>
+
+## Understanding the response
+
+The `data` array contains one object for each processed document in the batch.
+
+Each document includes:
+
+| Field | Description |
+| --- | --- |
+| `document_id` | Your identifier provided during upload |
+| `file_data.document_type` | Atlas-classified document type |
+| `file_data.*` | Extracted OCR fields specific to that document type |
+
+Every extracted field contains:
+
+```json
+{
+  "value": "ABCDE1234F",
+  "confidence_score": 0.95
+}
+```
+
+The `confidence_score` ranges from `0` to `1` and represents Atlas's confidence in the extracted value.
+
+## Callback support
+
+Instead of polling the extracts endpoint, Atlas can deliver extraction results directly to your system through a callback URL.
+
+When callback integration is enabled for your account:
+
+1. Atlas processes the uploaded documents.
+2. Atlas sends the extraction results to your configured `callback_url`.
+3. Your endpoint receives the same extraction payload automatically when processing is complete.
+
+To enable callbacks, share the following with the Atlas team:
+
+- Your `callback_url` where results should be delivered
+- Your `auth_url` used by Atlas to authenticate before sending callbacks
+
+Atlas maintains the callback configuration on our side, so no additional parameters are required in upload requests.
+
+<Note>
+  Callbacks are recommended for production integrations because they eliminate the need to continuously poll the extracts endpoint and allow your systems to receive results as soon as processing completes.
+</Note>
+
+## Error responses
+
+| Status | Meaning |
+| --- | --- |
+| `400` | `batch_id is required` — the batch identifier was not provided in the request. |
+| `401` | `Invalid or expired token` — the authentication token is missing, invalid, or expired. |
