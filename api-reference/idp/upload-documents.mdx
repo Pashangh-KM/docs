@@ -83,6 +83,7 @@ curl --request POST \
 | Status | Meaning |
 | --- | --- |
 | `400` | `Missing or empty required parameters` — one or more required fields are missing from the request body. |
+| `401` | `Invalid token` — the token is expired, revoked, or does not match any active session. |
 
 <Note>
   Atlas begins processing immediately after the upload is accepted. Save the returned `batch_id` and use it with the extracts API to retrieve OCR and extraction results.

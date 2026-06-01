@@ -12,7 +12,7 @@ Submit a list of document URLs to Atlas for asynchronous bulk OCR extraction. At
 
 ## Endpoint
 
-```
+```text
 POST /bulk/multiupload
 ```
 
@@ -65,8 +65,9 @@ A `201 Created` response contains an array — one entry per uploaded document �
 ## Error responses
 
 | Status | Meaning |
-|--------|---------|
-| `400`  | Bad Request — one or more required parameters are missing or malformed. |
+| --- | --- |
+| `400` | `Bad Request` — one or more required parameters are missing or malformed. |
+| `401` | `Invalid token` — the token is expired, revoked, or does not match any active session. |
 
 ## Examples
 
@@ -95,6 +96,7 @@ curl --request POST \
     ]
   }'
 ```
+
 ```json 201 OK
 [
   {
@@ -116,7 +118,6 @@ curl --request POST \
 ```
 
 </CodeGroup>
-
 
 <Tip>
   Save the `batch_id` immediately — all documents in the same upload share it, and you need it to fetch results.

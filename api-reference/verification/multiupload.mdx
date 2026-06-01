@@ -8,7 +8,7 @@ After initialising a flow with [POST /flow/init](/api-reference/verification/flo
 
 ## Endpoint
 
-```
+```text
 POST /verification/multiupload
 ```
 
@@ -107,9 +107,10 @@ curl --request POST \
 ## Error responses
 
 | Status | Meaning |
-|--------|---------|
-| `400`  | `Missing or empty required parameters: ['flow_uuid']` — a required field is absent from the request body. |
-| `422`  | External service failure (for example, Atlas could not reach the authentication URL you configured). |
+| --- | --- |
+| `400` | `Missing or empty required parameters: ['flow_uuid']` — a required field is absent from the request body. |
+| `401` | `Invalid token` — the token is expired, revoked, or does not match any active session. |
+| `422` | External service failure (for example, Atlas could not reach the authentication URL you configured). |
 
 <Note>
   The `document_id` field is your primary way to match Atlas extraction results back to your own documents. Choose a value that is unique within the flow and meaningful in your system (for example, a database record ID).
