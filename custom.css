@@ -1,6 +1,7 @@
 .nav-logo {
   height: auto !important;
   width: auto !important;
+  object-fit: contain;
   margin-top: 11px !important;
   margin-left: 16px !important;
 }
