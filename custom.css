@@ -1,11 +1,16 @@
-.nav-logo {
-  height: auto !important;
-  width: auto !important;
+nav-logo {
+  height: 70px !important;
   max-height: 70px !important;
-  object-fit: contain;
-  margin-top: 11px !important;
+  width: auto !important;
+  object-fit: contain !important;
   margin-left: 16px !important;
+  transform: translateY(4px) !important;
 }
+
+#navbar {
+  overflow: hidden !important;
+}
+
 #navbar > div:last-child {
-    padding-left: 0 !important;
-  }
+  padding-left: 0 !important;
+}
