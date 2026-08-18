@@ -111,8 +111,8 @@
   },
   "favicon": "/images/favicon.svg",
   "logo": {
-    "light": "/images/logo_light_v2.png",
-    "dark": "/images/logo_dark_new.png"
+    "light": "/images/new_atlas_logo_light_theme.png",
+    "dark": "/images/new_atlas_logo_dark_theme.png"
   },
   "appearance": {
     "default": "dark",
